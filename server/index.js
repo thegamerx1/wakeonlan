@@ -3,7 +3,6 @@ const express = require("express")
 const wake = require("wakeonlan")
 const ping = require("ping")
 const cors = require("cors")
-const bodyParser = require("body-parser")
 const { body, validationResult } = require("express-validator")
 
 const app = express()
@@ -15,7 +14,9 @@ app.use((req, res, next) => {
 	}
 })
 
-app.use(cors())
+app.use(cors({
+	origin: "*"
+}))
 
 app.get("/login", (req, res) => {
 	res.status(204).send("")
