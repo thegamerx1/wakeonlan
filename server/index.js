@@ -6,7 +6,7 @@ const { body, validationResult } = require("express-validator")
 
 const app = express()
 app.use((req, res, next) => {
-	if (req.headers.XKEY === process.env.XKEY) {
+	if (req.headers.xkey === process.env.key) {
 		next()
 	} else {
 		res.status(403).send()
@@ -14,7 +14,7 @@ app.use((req, res, next) => {
 })
 
 app.get("/wake",
-	body("mac").isMACAddress(),
+	body("mac").isMACAddress	(),
 	(req, res) => {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
