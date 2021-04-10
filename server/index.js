@@ -2,6 +2,7 @@ require("dotenv").config()
 const express = require("express")
 const wake = require("wakeonlan")
 const ping = require("ping")
+const cors = require("cors")
 const bodyParser = require("body-parser")
 const { body, validationResult } = require("express-validator")
 
@@ -14,6 +15,7 @@ app.use((req, res, next) => {
 	}
 })
 
+app.use(cors())
 
 app.get("/login", (req, res) => {
 	res.status(204).send("")
