@@ -2,6 +2,7 @@ require("dotenv").config()
 const express = require("express")
 const wake = require("wakeonlan")
 const ping = require("ping")
+const bodyParser = require("body-parser")
 const { body, validationResult } = require("express-validator")
 
 const app = express()
@@ -13,23 +14,12 @@ app.use((req, res, next) => {
 	}
 })
 
-app.get("/wake",
-	body("mac").isMACAddress(),
-	(req, res) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                errors: errors.array()
-            })
-        }
-		wake(req.body.mac).then(() => {
-			res.status(204).send()
-		}).catch((e) => {
-			res.status(400).send(e)
-		})
-	}
-)
+
+app.get("/login", (req, res) => {
+	res.status(204).send("")
+})
+
+app.use(express.json())
 
 app.get("/wake",
 	body("mac").isMACAddress(),
@@ -50,7 +40,7 @@ app.get("/wake",
 )
 
 app.get("/ping",
-	body("host").matches(/^[\w\-\d]$/i),
+	body("host").notEmpty(),
 	(req, res) => {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
@@ -61,9 +51,8 @@ app.get("/ping",
         }
 
 		ping.sys.probe(req.body.host, ping => {
-			res.send(ping)
-			console.log(ping)
-		}, {timeout: 2})
+			res.send((+ping).toString())
+		}, {timeout: 1})
 	}
 )
 
