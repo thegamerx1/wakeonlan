@@ -1,70 +1,43 @@
 require("dotenv").config()
-const express = require("express")
-const wake = require("wakeonlan")
-const ping = require("ping")
-const { body, validationResult } = require("express-validator")
+const WebSocket = require("ws")
+const port = process.env.APP_PORT || 80
+const wss = new WebSocket.Server({ port })
+const funcs = require("./funcs")
+wss.broadcast = obj => {
+	wss.clients.forEach(client => {
+		if (client.authenticated) client.Send(obj)
+	})
+}
+funcs.init(wss)
 
-const app = express()
-app.use((req, res, next) => {
-	if (req.headers.XKEY === process.env.XKEY) {
-		next()
-	} else {
-		res.status(403).send()
+wss.on("connection", ws => {
+	ws.Send = obj => {
+		if (ws.readyState === ws.OPEN) {
+			ws.send(JSON.stringify(obj))
+		}
 	}
+	ws.on("message", data => {
+		try {
+			data = JSON.parse(data)
+		} catch (e) {
+			console.error("Client sent invalid data", e)
+			return
+		}
+
+		const event = data.event
+		let found = false
+		for (const key of Object.keys(funcs)) {
+			if (event == key) {
+				found = key
+			}
+		}
+		if (found) {
+			funcs[found](data, ws)
+		} else {
+			console.error("Unkown event from client", event)
+		}
+	})
 })
 
-app.get("/wake",
-	body("mac").isMACAddress(),
-	(req, res) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                errors: errors.array()
-            })
-        }
-		wake(req.body.mac).then(() => {
-			res.status(204).send()
-		}).catch((e) => {
-			res.status(400).send(e)
-		})
-	}
-)
-
-app.get("/wake",
-	body("mac").isMACAddress(),
-	(req, res) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                errors: errors.array()
-            })
-        }
-		wake(req.body.mac).then(() => {
-			res.status(204).send()
-		}).catch((e) => {
-			res.status(400).send(e)
-		})
-	}
-)
-
-app.get("/ping",
-	body("host").matches(/^[\w\-\d]$/i),
-	(req, res) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                errors: errors.array()
-            })
-        }
-
-		ping.sys.probe(req.body.host, ping => {
-			res.send(ping)
-			console.log(ping)
-		}, {timeout: 2})
-	}
-)
-
-app.listen(80)
+wss.on("listening", () => console.log("Ready boi"))
+wss.on("error", console.error)

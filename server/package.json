@@ -1,12 +1,21 @@
 {
+  "name": "wakeonlan",
+  "version": "1.0.0",
+  "main": "server.js",
   "scripts": {
     "start": "node index"
   },
   "dependencies": {
-    "dotenv": "^8.2.0",
-    "express": "^4.17.1",
-    "express-validator": "^6.10.0",
+    "dotenv": "^10.0.0",
     "ping": "^0.4.1",
-    "wakeonlan": "^0.1.0"
+    "simple-json-db": "^1.2.3",
+    "wakeonlan": "^0.1.0",
+    "ws": "^7.4.6"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "data/*"
+    ],
+    "delay": 500
   }
 }
