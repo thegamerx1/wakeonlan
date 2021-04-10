@@ -14,7 +14,7 @@ app.use((req, res, next) => {
 })
 
 app.get("/wake",
-	body("mac").isMACAddress	(),
+	body("mac").isMACAddress(),
 	(req, res) => {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
@@ -67,4 +67,6 @@ app.get("/ping",
 	}
 )
 
-app.listen(80)
+app.listen(80, () => {
+	console.log("Ready, code: " + process.env.key)
+})
