@@ -13,12 +13,12 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
     res.setHeader("Access-Control-Allow-Headers", "content-type,xkey")
 	res.setHeader("Access-Control-Allow-Credentials","true")
-	if ("OPTIONS" == req.method)  return res.send(200)
+	res.setHeader("Access-Control-Max-Age", "120")
+	if ("OPTIONS" == req.method)  return res.sendStatus(200)
 	next()
 })
 
 app.post("/login",
-	body("key").isMACAddress(),
 	(req, res) => {
 		res.status(req.body.key === process.env.key ? 200 : 403).send()
 	}
@@ -43,9 +43,9 @@ app.post("/wake",
             })
         }
 		wake(req.body.mac).then(() => {
-			res.status(204).send()
+			res.json({success: true})
 		}).catch((e) => {
-			res.status(400).send()
+			res.json({success: false, error: e})
 		})
 	}
 )
@@ -62,7 +62,7 @@ app.post("/ping",
         }
 
 		ping.sys.probe(req.body.host, ping => {
-			res.status(ping ? 204 : 404).send("")
+			res.json({success: ping})
 		}, {timeout: 1})
 	}
 )
