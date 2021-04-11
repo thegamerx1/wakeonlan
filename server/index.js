@@ -43,8 +43,10 @@ app.post("/wake",
             })
         }
 		wake(req.body.mac).then(() => {
+			console.log(`Wake: ${req.body.mac} success}`)
 			res.json({success: true})
 		}).catch((e) => {
+			console.log(`Wake: ${req.body.mac} failure}`)
 			res.json({success: false, error: e})
 		})
 	}
@@ -62,6 +64,7 @@ app.post("/ping",
         }
 
 		ping.sys.probe(req.body.host, ping => {
+			console.log(`Ping: ${req.body.host} ${ping}`)
 			res.json({success: ping})
 		}, {timeout: 1})
 	}
