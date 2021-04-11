@@ -5,6 +5,27 @@ const ping = require("ping")
 const { body, validationResult } = require("express-validator")
 
 const app = express()
+
+app.use(express.json())
+
+app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*")
+    res.setHeader("Access-Control-Allow-Methods", "POST")
+    res.setHeader("Access-Control-Allow-Headers", "content-type,xkey")
+    next()
+})
+
+app.options("*", (req, res) => {
+	res.status(204).send("")
+})
+
+app.post("/login",
+	body("key").isMACAddress(),
+	(req, res) => {
+		res.status(req.body.key === process.env.key ? 200 : 403).send()
+	}
+)
+
 app.use((req, res, next) => {
 	if (req.headers.xkey === process.env.key) {
 		next()
@@ -13,13 +34,7 @@ app.use((req, res, next) => {
 	}
 })
 
-app.get("/login", (req, res) => {
-	res.status(204).send("")
-})
-
-app.use(express.json())
-
-app.get("/wake",
+app.post("/wake",
 	body("mac").isMACAddress(),
 	(req, res) => {
         const errors = validationResult(req)
@@ -32,12 +47,12 @@ app.get("/wake",
 		wake(req.body.mac).then(() => {
 			res.status(204).send()
 		}).catch((e) => {
-			res.status(400).send(e)
+			res.status(400).send()
 		})
 	}
 )
 
-app.get("/ping",
+app.post("/ping",
 	body("host").notEmpty(),
 	(req, res) => {
         const errors = validationResult(req)
@@ -49,7 +64,7 @@ app.get("/ping",
         }
 
 		ping.sys.probe(req.body.host, ping => {
-			res.send((+ping).toString())
+			res.status(ping ? 204 : 404).send("")
 		}, {timeout: 1})
 	}
 )
