@@ -10,16 +10,11 @@ app.use(express.json())
 
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*")
-    res.setHeader("Access-Control-Allow-Methods", "POST,GET")
+    res.setHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
     res.setHeader("Access-Control-Allow-Headers", "content-type,xkey")
-    next()
-})
-
-app.options("*", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*")
-    res.setHeader("Access-Control-Allow-Methods", "POST,GET")
-    res.setHeader("Access-Control-Allow-Headers", "content-type,xkey")
-	res.status(204).send()
+	res.setHeader("Access-Control-Allow-Credentials","true")
+	if ("OPTIONS" == req.method)  return res.send(200)
+	next()
 })
 
 app.post("/login",
