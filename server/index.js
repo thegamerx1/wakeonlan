@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 
 app.post("/login",
 	(req, res) => {
-		res.status(req.body.key === process.env.key ? 200 : 403).send()
+		res.json({success: req.body.key === process.env.key})
 	}
 )
 
