@@ -33,7 +33,7 @@ app.use((req, res, next) => {
 })
 
 app.post("/wake",
-	body("mac").isMACAddress(),
+	body("mac").notEmpty(),
 	(req, res) => {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
