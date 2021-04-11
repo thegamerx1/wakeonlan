@@ -67,6 +67,6 @@ app.post("/ping",
 	}
 )
 
-app.listen(80, () => {
+app.listen(process.env.port || 80, () => {
 	console.log("Ready, code: " + process.env.key)
 })
