@@ -8,11 +8,11 @@ const app = express()
 
 app.use(express.json())
 
-app.options("*", (req, res) => {
+app.options("/*", (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*")
     res.setHeader("Access-Control-Allow-Methods", "POST,GET")
     res.setHeader("Access-Control-Allow-Headers", "content-type,xkey")
-	res.status(204).send("")
+	res.status(200).send("fuck cors")
 })
 
 app.post("/login",
