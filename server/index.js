@@ -1,75 +1,49 @@
 require("dotenv").config()
 const express = require("express")
-const wake = require("wakeonlan")
-const ping = require("ping")
 const { body, validationResult } = require("express-validator")
+const routes = require("./routes")
 
 const app = express()
-
 app.use(express.json())
 
 app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*")
-    res.setHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
-    res.setHeader("Access-Control-Allow-Headers", "content-type,xkey")
-	res.setHeader("Access-Control-Allow-Credentials","true")
+	res.setHeader("Access-Control-Allow-Origin", "*")
+	res.setHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
+	res.setHeader("Access-Control-Allow-Headers", "*")
+	res.setHeader("Access-Control-Allow-Credentials", "true")
 	res.setHeader("Access-Control-Max-Age", "120")
-	if ("OPTIONS" == req.method)  return res.sendStatus(200)
+	if ("OPTIONS" == req.method) return res.sendStatus(200)
 	next()
 })
 
-app.post("/login",
-	(req, res) => {
-		res.json({success: req.body.key === process.env.key})
-	}
-)
+app.post("/login", routes.login)
 
 app.use((req, res, next) => {
-	if (req.headers.xkey === process.env.key) {
+	if (req.headers.key === process.env.key) {
 		next()
 	} else {
 		res.status(403).send()
 	}
 })
 
-app.post("/wake",
-	body("mac").notEmpty(),
-	(req, res) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                errors: errors.array()
-            })
-        }
-		wake(req.body.mac).then(() => {
-			console.log(`Wake: ${req.body.mac} success}`)
-			res.json({success: true})
-		}).catch((e) => {
-			console.log(`Wake: ${req.body.mac} failure}`)
-			res.json({success: false, error: e})
-		})
+app.post("/save", body("devices").isArray(), validate(routes.save))
+app.post("/wake", body("mac").notEmpty(), validate(routes.wake))
+app.post("/ping", body("hosts").isArray(), validate(routes.ping))
+
+function validate(call) {
+	return (req, res) => {
+		const errors = validationResult(req)
+		if (!errors.isEmpty()) {
+			return res.status(400).json({
+				success: false,
+				errors: errors.array(),
+			})
+		}
+		call(req, res)
 	}
-)
+}
 
-app.post("/ping",
-	body("host").notEmpty(),
-	(req, res) => {
-        const errors = validationResult(req)
-        if (!errors.isEmpty()) {
-            return res.status(400).json({
-                success: false,
-                errors: errors.array()
-            })
-        }
-
-		ping.sys.probe(req.body.host, ping => {
-			console.log(`Ping: ${req.body.host} ${ping}`)
-			res.json({success: ping})
-		}, {timeout: 1})
-	}
-)
-
-app.listen(process.env.port || 80, () => {
-	console.log("Ready, code: " + process.env.key)
+const port = process.env.port || 80
+app.listen(port, () => {
+	console.log(`Listening at port ${port} code: ${process.env.key}`)
 })
