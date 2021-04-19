@@ -1,6 +1,13 @@
 const wol = require("wakeonlan")
 const JSONdb = require("simple-json-db")
-const db = new JSONdb("./data/devices.json")
+const configDir = "./data/devices.json"
+const db = new JSONdb(configDir)
+const fs = require("fs")
+
+if (!fs.existsSync(configDir)) {
+	fs.mkdirSync(configDir)
+}
+
 const { exec } = require("child_process")
 var devices = []
 
