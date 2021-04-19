@@ -8,10 +8,11 @@
 	import { save } from "./request"
 	import { fly } from "svelte/transition"
 
-	const refreshInterval = 15 * 1000
+	const refreshInterval = 10 * 1000
 	let modalopen = false,
 		onlines = [],
-		authenticated = false
+		authenticated = false,
+		lastUpdate
 
 	onMount(() => {
 		devices.subscribe(save2Cloud)
@@ -25,8 +26,9 @@
 		}
 	}
 
-	function removeDevice(index) {
-		devices.update(arr => arr.splice(index, 1))
+	function remove(index) {
+		console.log("remove", index)
+		devices.update(arr => arr.filter((e, i) => i !== index))
 	}
 
 	function logout() {
@@ -38,7 +40,7 @@
 		ping(getDevices(devices).map(dev => dev.mac)).then(res => {
 			if (res.success) {
 				onlines = res.devices
-				console.log(onlines)
+				lastUpdate = performance.now()
 			}
 		})
 	}
@@ -61,7 +63,7 @@
 				</div>
 				<div class="d-flex p-15 flex-wrap flex-row justify-content-center">
 					{#each $devices as dev, i (dev.mac)}
-						<Device {...dev} bind:online={onlines[i]} on:delete={() => removeDevice(i)} />
+						<Device {...dev} online={onlines[i]} on:remove={() => remove(i)} {lastUpdate} />
 					{:else}
 						No devices!
 					{/each}
