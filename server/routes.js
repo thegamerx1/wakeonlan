@@ -1,7 +1,7 @@
 const wol = require("wakeonlan")
 const JSONdb = require("simple-json-db")
-const configDir = "./data/devices.json"
-const db = new JSONdb(configDir)
+const configDir = "./data/"
+const db = new JSONdb(configDir + "devices.json")
 const fs = require("fs")
 
 if (!fs.existsSync(configDir)) {
