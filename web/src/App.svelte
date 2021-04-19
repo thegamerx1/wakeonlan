@@ -8,7 +8,7 @@
 	import { save } from "./request"
 	import { fly } from "svelte/transition"
 
-	const refreshInterval = 10 * 1000
+	const refreshInterval = 15 * 1000
 	let modalopen = false,
 		onlines = [],
 		authenticated = false

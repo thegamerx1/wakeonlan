@@ -8,7 +8,7 @@ refresh()
 function refresh() {
 	find().then(devs => {
 		devices = devs
-		setTimeout(refresh, 5 * 1000)
+		setTimeout(refresh, 15 * 1000)
 	})
 }
 
@@ -27,13 +27,11 @@ function ping(req, res) {
 	req.body.hosts.forEach((host, index) => {
 		out[index] = false
 		for (const value of devices) {
-			console.log(value.mac + "  " + host)
 			if (value.mac == host) {
 				out[index] = true
 			}
 		}
 	})
-	console.log(out)
 	res.json({ success: true, devices: out })
 }
 
