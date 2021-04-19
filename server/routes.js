@@ -4,13 +4,13 @@ const find = require("local-devices")
 const db = new JSONdb("./config.json")
 var devices = []
 
-refresh()
-function refresh() {
-	find().then(devs => {
-		devices = devs
-		setTimeout(refresh, 15 * 1000)
-	})
-}
+// refresh()
+// function refresh() {
+// 	find().then(devs => {
+// 		devices = devs
+// 		setTimeout(refresh, 15 * 1000)
+// 	})
+// }
 
 function wake(req, res) {
 	wol(req.body.mac)
