@@ -1,16 +1,20 @@
 const wol = require("wakeonlan")
 const JSONdb = require("simple-json-db")
-const find = require("local-devices")
 const db = new JSONdb("./config.json")
+const { exec } = require("child_process")
 var devices = []
 
-// refresh()
-// function refresh() {
-// 	find().then(devs => {
-// 		devices = devs
-// 		setTimeout(refresh, 15 * 1000)
-// 	})
-// }
+refresh()
+function refresh() {
+	exec("arp -a", (error, stdout) => {
+		if (error) return console.error(error)
+		devices = stdout.match(/(?<mac>(\w{2}[:-]){5}\w{2})/g)
+		devices.forEach((e, i) => {
+			devices[i] = e.replace(/-/g, ":")
+		})
+		console.log(devices)
+	})
+}
 
 function wake(req, res) {
 	wol(req.body.mac)
@@ -27,12 +31,12 @@ function ping(req, res) {
 	req.body.hosts.forEach((host, index) => {
 		out[index] = false
 		for (const value of devices) {
-			if (value.mac == host) {
+			if (value == host) {
 				out[index] = true
 			}
 		}
 	})
-	res.json({ success: true, devices: out })
+	res.json({ devices: out })
 }
 
 function save(req, res) {

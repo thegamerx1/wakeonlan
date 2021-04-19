@@ -9,7 +9,6 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-validator": "^6.10.0",
-    "local-devices": "^3.1.0",
     "simple-json-db": "^1.2.3",
     "wakeonlan": "^0.1.0"
   }

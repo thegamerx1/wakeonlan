@@ -38,10 +38,8 @@
 
 	function refresh() {
 		ping(getDevices(devices).map(dev => dev.mac)).then(res => {
-			if (res.success) {
-				onlines = res.devices
-				lastUpdate = performance.now()
-			}
+			onlines = res.devices
+			lastUpdate = performance.now()
 		})
 	}
 </script>
