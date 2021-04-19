@@ -12,7 +12,6 @@ function refresh() {
 		devices.forEach((e, i) => {
 			devices[i] = e.replace(/-/g, ":")
 		})
-		console.log(devices)
 	})
 }
 
