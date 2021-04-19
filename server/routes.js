@@ -7,6 +7,7 @@ var devices = []
 refresh()
 function refresh() {
 	exec("arp -a", (error, stdout) => {
+		setTimeout(refresh, 10 * 1000)
 		if (error) return console.error(error)
 		devices = stdout.match(/(?<mac>(\w{2}[:-]){5}\w{2})/g)
 		devices.forEach((e, i) => {
