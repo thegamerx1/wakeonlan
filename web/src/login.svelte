@@ -1,5 +1,5 @@
 <script>
-	import { login } from "./request.js"
+	import { login } from "./request"
 	import { fly } from "svelte/transition"
 	export let logged = false
 	import { devices, getDevices } from "./store.js"
@@ -10,20 +10,26 @@
 		failed = false
 
 	promise.then(res => {
-		logged = res.success
-		if (logged) {
-			devices.set(Array.isArray(res.devices) ? res.devices : [])
-		}
-		console.log(getDevices())
+		if (res.success) success(res)
+		console.debug(getDevices())
 	})
+
+	function success(res) {
+		logged = res.success
+		devices.set(Array.isArray(res.devices) ? res.devices : [])
+	}
 
 	async function submit() {
 		loggingin = true
-		logged = await login(key)
-		if (!logged) failed = true
+		const res = await login(key)
+		if (res.success) {
+			success(res)
+		} else {
+			failed = true
+		}
 		setTimeout(() => {
 			loggingin = false
-		}, 200)
+		}, 300)
 	}
 </script>
 

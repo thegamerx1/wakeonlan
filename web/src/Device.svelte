@@ -5,7 +5,7 @@
 	import { createEventDispatcher } from "svelte"
 	const dispatch = createEventDispatcher()
 
-	export let mac, online, name, lastUpdate
+	export let mac, online, name, lastUpdate, host
 	const wakeTimeout = 2 * 60 * 1000
 	const confirmTimeout = 2.5 * 1000
 	const updateRate = 1000
@@ -62,18 +62,18 @@
 <div class="card m-10 w-300 px-25 d-flex flex-column" transition:scale>
 	<div class="d-flex font-size-18">
 		<span class="px-5 font-weight-bold">{name}</span>
-		<span class="text-muted ml-auto">
+		<span class="text-muted ml-auto font-size-16">
 			{#if online === undefined}
 				Loading <i class="fad fa-spinner-third fa-spin" />
 			{:else if waitingon}
 				Waiting to turn on <i class="fad fa-spinner-third fa-spin" />
 			{:else}
 				{#if since > 15}
-					<span class="text-muted">({since}s)</span>
+					<span>({since}s)</span>
 				{/if}
 				<span class={online ? "text-success" : "text-danger"}>
 					{#if online}
-						Online <i class="fad fa-signal" />
+						{online.toFixed(0)}ms <i class="fad fa-signal" />
 					{:else}
 						Offline <i class="fad fa-signal-slash" />
 					{/if}

@@ -1,7 +1,7 @@
 <script>
 	import { devices, getDevices } from "./store.js"
 
-	const toCheck = ["name", "mac"]
+	const toCheck = ["name", "mac", "host"]
 
 	export let show = false
 	let data, error
@@ -26,7 +26,10 @@
 	}
 
 	function reset() {
-		data = { name: "", mac: "" }
+		data = {}
+		toCheck.forEach(check => {
+			data[check] = ""
+		})
 	}
 </script>
 
@@ -61,6 +64,16 @@
 						bind:value={data.mac}
 						class="form-control"
 						placeholder="00:00:00:00:00"
+						required="required"
+					/>
+				</label>
+				<label class="w-full"
+					>Host
+					<input
+						type="text"
+						bind:value={data.host}
+						class="form-control"
+						placeholder="laptop or 192.168.1.75"
 						required="required"
 					/>
 				</label>

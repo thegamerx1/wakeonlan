@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 
 app.post("/save", body("devices").isArray(), validate(routes.save))
 app.post("/wake", body("mac").notEmpty(), validate(routes.wake))
-app.post("/ping", body("hosts").isArray(), validate(routes.ping))
+app.post("/ping", body("hosts").isArray(), validate(routes.aliveCheck))
 
 function validate(call) {
 	return (req, res) => {
@@ -44,6 +44,8 @@ function validate(call) {
 }
 
 const port = process.env.port || 80
-app.listen(port, () => {
+const server = app.listen(port, () => {
 	console.log(`Listening at port ${port} code: ${process.env.key}`)
 })
+
+server.keepAliveTimeout = 30000

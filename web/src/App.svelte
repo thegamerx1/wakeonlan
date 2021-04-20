@@ -1,18 +1,19 @@
 <script>
+	import { fly } from "svelte/transition"
+	import { devices, getDevices } from "./store.js"
+	import { onMount } from "svelte"
 	import Device from "./Device.svelte"
 	import AddModal from "./modal.svelte"
 	import LoginPage from "./login.svelte"
-	import { onMount } from "svelte"
-	import { ping } from "./request.js"
-	import { devices, getDevices } from "./store.js"
-	import { save } from "./request"
-	import { fly } from "svelte/transition"
+	import { ping, save } from "./request"
 
 	const refreshInterval = 10 * 1000
 	let modalopen = false,
 		onlines = [],
 		authenticated = false,
-		lastUpdate
+		lastUpdate,
+		isSaving,
+		refreshing
 
 	onMount(() => {
 		devices.subscribe(save2Cloud)
@@ -20,9 +21,14 @@
 	})
 
 	function save2Cloud() {
+		if (isSaving) return
 		if (authenticated) {
 			refresh()
-			save(getDevices())
+			isSaving = true
+			save(getDevices()).then(res => {
+				devices.set(res.devices)
+				isSaving = false
+			})
 		}
 	}
 
@@ -37,7 +43,10 @@
 	}
 
 	function refresh() {
-		ping(getDevices(devices).map(dev => dev.mac)).then(res => {
+		const devs = getDevices(devices).map(dev => dev.host)
+		if (devs.length === 0) return
+
+		refreshing = ping(devs).then(res => {
 			onlines = res.devices
 			lastUpdate = performance.now()
 		})
@@ -56,7 +65,14 @@
 	<div class="content-wrapper">
 		{#if authenticated}
 			<div>
-				<div class="my-10 px-10 justify-content-center d-flex justify-content-sm-end d-flex">
+				<div
+					class="card my-10 p-10 justify-content-center d-flex align-items-center justify-content-sm-end d-flex"
+				>
+					{#await refreshing}
+						<span class="px-5">Refreshing <i class="fad fa-spinner-third fa-spin" /></span>
+					{:catch}
+						<span class="text-danger">Error refreshing</span>
+					{/await}
 					<button class="btn" on:click={() => (modalopen = true)} in:fly>Add device</button>
 				</div>
 				<div class="d-flex p-15 flex-wrap flex-row justify-content-center">

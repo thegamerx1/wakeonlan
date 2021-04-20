@@ -3,25 +3,13 @@ const JSONdb = require("simple-json-db")
 const configDir = "./data/"
 const db = new JSONdb(configDir + "devices.json")
 const fs = require("fs")
+const { ping } = require("./ping")
 
 if (!fs.existsSync(configDir)) {
 	fs.mkdirSync(configDir)
 }
 
-const { exec } = require("child_process")
-var devices = []
-
-refresh()
-function refresh() {
-	exec("arp -a", (error, stdout) => {
-		setTimeout(refresh, 10 * 1000)
-		if (error) return console.error(error)
-		devices = stdout.match(/(?<mac>(\w{2}[:-]){5}\w{2})/g)
-		devices.forEach((e, i) => {
-			devices[i] = e.replace(/-/g, ":")
-		})
-	})
-}
+const needed = ["name", "mac", "host"]
 
 function wake(req, res) {
 	wol(req.body.mac)
@@ -33,23 +21,28 @@ function wake(req, res) {
 		})
 }
 
-function ping(req, res) {
-	const out = []
-	req.body.hosts.forEach((host, index) => {
-		out[index] = false
-		for (const value of devices) {
-			if (value == host) {
-				out[index] = true
-			}
-		}
+function aliveCheck(req, res) {
+	const promises = []
+	req.body.hosts.forEach(host => {
+		promises.push(ping(host))
 	})
-	res.json({ devices: out })
+	Promise.all(promises).then(out => {
+		res.json({ devices: out })
+	})
 }
 
 function save(req, res) {
 	const data = Array.isArray(req.body.devices) ? req.body.devices : []
+	data.forEach((e, i) => {
+		needed.forEach(check => {
+			if (typeof e[check] !== "string" || e[check] === "") {
+				data.splice(i, 1)
+			}
+		})
+	})
 	db.set("devices", data)
 	db.sync()
+	res.json({ devices: data })
 }
 
 function login(req, res) {
@@ -57,4 +50,4 @@ function login(req, res) {
 	res.json({ success: success, devices: success ? db.get("devices") : null })
 }
 
-module.exports = { ping, wake, save, login }
+module.exports = { aliveCheck, wake, save, login }
