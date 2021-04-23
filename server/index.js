@@ -1,51 +1,36 @@
 require("dotenv").config()
-const express = require("express")
-const { body, validationResult } = require("express-validator")
-const routes = require("./routes")
-
-const app = express()
-app.use(express.json())
-
-app.use((req, res, next) => {
-	res.setHeader("Access-Control-Allow-Origin", "*")
-	res.setHeader("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
-	res.setHeader("Access-Control-Allow-Headers", "*")
-	res.setHeader("Access-Control-Allow-Credentials", "true")
-	res.setHeader("Access-Control-Max-Age", "120")
-	if ("OPTIONS" == req.method) return res.sendStatus(200)
-	next()
-})
-
-app.post("/login", routes.login)
-
-app.use((req, res, next) => {
-	if (req.headers.key === process.env.key) {
-		next()
-	} else {
-		res.status(403).send()
-	}
-})
-
-app.post("/save", body("devices").isArray(), validate(routes.save))
-app.post("/wake", body("mac").notEmpty(), validate(routes.wake))
-app.post("/ping", body("hosts").isArray(), validate(routes.aliveCheck))
-
-function validate(call) {
-	return (req, res) => {
-		const errors = validationResult(req)
-		if (!errors.isEmpty()) {
-			return res.status(400).json({
-				success: false,
-				errors: errors.array(),
-			})
-		}
-		call(req, res)
-	}
-}
-
+const WebSocket = require("ws")
 const port = process.env.port || 80
-const server = app.listen(port, () => {
-	console.log(`Listening at port ${port} code: ${process.env.key}`)
+const wss = new WebSocket.Server({ port })
+const funcs = require("./funcs")
+
+wss.on("connection", ws => {
+	ws.on("open", ws => {
+		ws.send("shit on bitch")
+	})
+
+	ws.on("message", data => {
+		try {
+			data = JSON.parse(data)
+		} catch {
+			console.error("Client sent invalid data", data)
+			return
+		}
+		console.log(data)
+		const event = data.event
+		let found = false
+		for (const key of Object.keys(funcs)) {
+			if (event == key) {
+				found = key
+			}
+		}
+		if (found) {
+			funcs[found](data, ws)
+		} else {
+			console.error("Unkown event from client", event)
+		}
+	})
 })
 
-server.keepAliveTimeout = 30000
+wss.on("listening", () => console.log("Ready boi"))
+wss.on("error", console.error)

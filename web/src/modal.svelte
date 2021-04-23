@@ -1,16 +1,22 @@
 <script>
-	import { devices, getDevices } from "./store.js"
-
-	const toCheck = ["name", "mac", "host"]
+	import { devices, getDevices } from "./store"
+	import { save } from "./request"
+	import { fly } from "svelte/transition"
 
 	export let show = false
-	let data, error
 
+	$: if (show) {
+		input.focus()
+	}
+
+	const toCheck = ["name", "mac", "host"]
+	let data, error, submiting, input
 	reset()
 
 	function onSubmit() {
 		let current = getDevices()
 		let error = false
+		submiting = true
 		toCheck.forEach(check => {
 			for (var i = 0; i < current.length; i++) {
 				if (error) break
@@ -20,8 +26,10 @@
 
 		if (error) return
 
-		devices.update(arr => [...arr, data])
-		show = false
+		save([...$devices, data]).then(data => {
+			devices.set(data.devices)
+			show = submiting = false
+		})
 		reset()
 	}
 
@@ -51,10 +59,11 @@
 					>Name
 					<input
 						type="text"
+						bind:this={input}
 						bind:value={data.name}
 						class="form-control"
 						placeholder="Name"
-						required="required"
+						disabled={submiting}
 					/>
 				</label>
 				<label class="w-full"
@@ -64,7 +73,7 @@
 						bind:value={data.mac}
 						class="form-control"
 						placeholder="00:00:00:00:00"
-						required="required"
+						disabled={submiting}
 					/>
 				</label>
 				<label class="w-full"
@@ -74,12 +83,17 @@
 						bind:value={data.host}
 						class="form-control"
 						placeholder="laptop or 192.168.1.75"
-						required="required"
+						disabled={submiting}
 					/>
 				</label>
 				<div class="text-right mt-20">
-					<button class="btn mr-5" on:click={() => (show = false)} type="button">Close</button>
-					<button class="btn btn-primary" type="submit">Add</button>
+					<button
+						class="btn mr-5"
+						on:click={() => (show = false)}
+						type="button"
+						disabled={submiting}>Close</button
+					>
+					<button class="btn btn-primary" type="submit" disabled={submiting}>Add</button>
 				</div>
 			</form>
 		</div>

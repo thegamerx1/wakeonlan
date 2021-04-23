@@ -1,24 +1,35 @@
 <script>
-	import { wake } from "./request"
+	import { ping, wake } from "./request"
 	import { onMount } from "svelte"
 	import { scale, slide } from "svelte/transition"
 	import { createEventDispatcher } from "svelte"
 	const dispatch = createEventDispatcher()
 
-	export let mac, online, name, lastUpdate, host
+	export let mac, name, host
 	const wakeTimeout = 2 * 60 * 1000
 	const confirmTimeout = 2.5 * 1000
 	const updateRate = 1000
+	const aliveRate = 10 * 1000
 
-	let waitingon, errorWake, since
-	let wakingPromise, sinceTimer, deleteConfirm, wakeConfirm
+	let waitingon, errorWake, since, online, lastUpdate, pingPromise
+	let wakingPromise, sinceTimer, aliveTimer, deleteConfirm, wakeConfirm
 
 	onMount(() => {
 		sinceTimer = setInterval(sinceUpdate, updateRate)
+		aliveTimer = setInterval(aliveUpdate, aliveRate)
+		aliveUpdate()
 		return () => {
 			clearInterval(sinceTimer)
+			clearInterval(aliveTimer)
 		}
 	})
+
+	function aliveUpdate() {
+		pingPromise = ping(host).then(data => {
+			lastUpdate = performance.now()
+			online = data.status
+		})
+	}
 
 	function sinceUpdate() {
 		since = Math.floor((performance.now() - lastUpdate) / 1000)
@@ -43,8 +54,8 @@
 			}, confirmTimeout)
 			return
 		}
-		wakingPromise = wake(mac).then(res => {
-			if (res.success) {
+		wakingPromise = wake(mac).then(data => {
+			if (data.success) {
 				waitingon = true
 				setTimeout(() => {
 					waitingon = false
@@ -94,8 +105,8 @@
 					{:else}
 						<button class="btn" on:click={turnon}>Wake</button>
 					{/if}
+					<span class="p-5" />
 				{/await}
-				<span class="p-5" />
 			{/if}
 			{#if deleteConfirm}
 				<button class="btn btn-danger" on:click={remove}>Delete?</button>

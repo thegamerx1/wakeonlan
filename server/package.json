@@ -9,8 +9,13 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-validator": "^6.10.0",
+    "express-ws": "^4.0.0",
     "ping": "^0.4.1",
     "simple-json-db": "^1.2.3",
     "wakeonlan": "^0.1.0"
+  },
+  "nodemonConfig": {
+    "ignore": ["data/*"],
+    "delay": 500
   }
 }
