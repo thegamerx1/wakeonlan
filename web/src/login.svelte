@@ -41,24 +41,22 @@
 </script>
 
 {#if show}
-	<div class="h-full d-flex justify-content-center align-items-center" transition:fly>
-		<div class="card w-500">
-			{#if failed}
-				<div class="alert alert-danger my-5" transition:fly>Wrong token</div>
-			{/if}
-			<h4>Login</h4>
-			<form on:submit|preventDefault={submit}>
-				<label class="w-full">
-					Token
-					<input type="password" bind:value={key} class="form-control" required="required" />
-				</label>
-				<button class="btn mt-5 btn-primary btn-block" type="submit" disabled={loggingin}>
-					{#if loggingin}
-						<i class="fad fa-spinner-third fa-spin" />
-					{/if}
-					Login
-				</button>
-			</form>
-		</div>
+	<div class="card w-full w-sm-500" transition:fly>
+		{#if failed}
+			<div class="alert alert-danger my-5" transition:fly>Wrong token</div>
+		{/if}
+		<h4>Login</h4>
+		<form on:submit|preventDefault={submit}>
+			<label class="w-full">
+				Token
+				<input type="password" bind:value={key} class="form-control" required="required" />
+			</label>
+			<button class="btn mt-5 btn-primary btn-block" type="submit" disabled={loggingin}>
+				{#if loggingin}
+					<i class="fad fa-spinner-third fa-spin" />
+				{/if}
+				Login
+			</button>
+		</form>
 	</div>
 {/if}

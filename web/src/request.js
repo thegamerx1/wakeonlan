@@ -2,7 +2,7 @@ import { writable, get } from "svelte/store"
 export const status = writable([])
 export const getStatus = () => get(status)
 
-const API = PRODUCTION ? "wss://lanapi.ndrx.ml/ws/" : "ws://localhost:9000"
+const API = PRODUCTION ? "wss://lanapi.ndrx.ml" : "ws://localhost:9000"
 
 let socketError = false
 var ws
@@ -20,6 +20,7 @@ function close() {
 }
 
 function onError(e) {
+	if (ws.readyState === 0) return
 	console.error(e)
 	reset()
 	setTimeout(connect, socketError ? 2000 : 500)

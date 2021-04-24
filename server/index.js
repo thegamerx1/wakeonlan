@@ -5,10 +5,6 @@ const wss = new WebSocket.Server({ port })
 const funcs = require("./funcs")
 
 wss.on("connection", ws => {
-	ws.on("open", ws => {
-		ws.send("shit on bitch")
-	})
-
 	ws.on("message", data => {
 		try {
 			data = JSON.parse(data)
