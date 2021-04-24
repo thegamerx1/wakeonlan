@@ -11,7 +11,7 @@
 	const wakeTimeout = 2 * 60 * 1000
 	const confirmTimeout = 2.5 * 1000
 	const updateRate = 1000
-	const aliveRate = 10 * 1000
+	const aliveRate = 5 * 1000
 
 	let waitingon, errorWake, since, online, lastUpdate, pingPromise, deletePromise
 	let wakingPromise, sinceTimer, aliveTimer, deleteConfirm, wakeConfirm
