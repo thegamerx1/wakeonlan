@@ -1,6 +1,6 @@
 <script>
 	import { fly, fade } from "svelte/transition"
-	import DevicesPage from "./DevicesPage.svelte"
+	import DevicesPage from "./device/page.svelte"
 	import AddModal from "./modal.svelte"
 	import LoginPage from "./login.svelte"
 	import { status, close } from "./request"
@@ -31,14 +31,9 @@
 			{/if}
 		{:else if $status.error}
 			<div class="alert my-5 font-size-16 alert-danger" transition:fade={{ duration: 500 }}>
-				<i class="fas fa-spinner fa-spin" />
+				<i class="fad fa-spinner-third fa-spin" />
 				Connection to server failed..
 			</div>
-			<!-- {:else if since > 1500}
-			<div class="alert my-5 font-size-16" transition:fly={{ duration: 500 }}>
-				<i class="fas fa-spinner fa-spin" />
-				Connection taking longer than usual..
-			</div> -->
 		{:else}
 			<i class="fad fa-spinner-third fa-spin fa-3x" />
 		{/if}

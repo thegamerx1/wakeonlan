@@ -5,6 +5,11 @@ const wss = new WebSocket.Server({ port })
 const funcs = require("./funcs")
 
 wss.on("connection", ws => {
+	ws.Send = obj => {
+		if (ws.readyState === ws.OPEN) {
+			ws.send(JSON.stringify(obj))
+		}
+	}
 	ws.on("message", data => {
 		try {
 			data = JSON.parse(data)
@@ -30,3 +35,9 @@ wss.on("connection", ws => {
 
 wss.on("listening", () => console.log("Ready boi"))
 wss.on("error", console.error)
+
+wss.broadcast = obj => {
+	wss.clients.forEach(client => {
+		if (client.authenticated) client.Send(obj)
+	})
+}

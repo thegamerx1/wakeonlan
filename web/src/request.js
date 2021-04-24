@@ -8,6 +8,7 @@ let socketError = false
 var ws
 const resolves = []
 let requestids = 1
+let waiting2Connect = false
 reset()
 connect()
 
@@ -20,14 +21,17 @@ function close() {
 }
 
 function onError(e) {
+	if (waiting2Connect) return
 	if (ws.readyState === 0) return
 	console.error(e)
 	reset()
+	waiting2Connect = true
 	setTimeout(connect, socketError ? 2000 : 500)
 }
 
 function connect() {
 	ws = new WebSocket(API)
+	waiting2Connect = false
 	console.log("Openning connection")
 	ws.onerror = e => {
 		socketError = true

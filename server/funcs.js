@@ -15,17 +15,17 @@ function wake(data, ws) {
 	if (notAuth(ws)) return
 	wol(data.mac)
 		.then(() => {
-			wsSend(ws, { event: "wake", success: true, nonce: data.nonce })
+			ws.Send({ event: "wake", success: true, nonce: data.nonce })
 		})
 		.catch(() => {
-			wsSend(ws, { event: "wake", success: false, nonce: data.nonce })
+			ws.Send({ event: "wake", success: false, nonce: data.nonce })
 		})
 }
 
 function ping(data, ws) {
 	if (notAuth(ws)) return
 	pong(data.host).then(status => {
-		wsSend(ws, { event: "ping", status, nonce: data.nonce })
+		ws.Send({ event: "ping", status, nonce: data.nonce })
 	})
 }
 
@@ -41,25 +41,19 @@ function save(data, ws) {
 	})
 	db.set("devices", out)
 	db.sync()
-	wsSend(ws, { event: "save", devices: out, nonce: data.nonce })
+	ws.Send({ event: "save", devices: out, nonce: data.nonce })
 }
 
 function login(data, ws) {
 	if (ws.authenticated) return
 	const success = data.login === process.env.key
 	if (success) ws.authenticated = true
-	wsSend(ws, {
+	ws.Send({
 		event: "login",
 		success: success,
 		devices: success ? db.get("devices") : null,
 		nonce: data.nonce,
 	})
-}
-
-function wsSend(ws, obj) {
-	if (ws.readyState === ws.OPEN) {
-		ws.send(JSON.stringify(obj))
-	}
 }
 
 module.exports = { ping, wake, save, login }
