@@ -3,6 +3,12 @@ const WebSocket = require("ws")
 const port = process.env.port || 80
 const wss = new WebSocket.Server({ port })
 const funcs = require("./funcs")
+wss.broadcast = obj => {
+	wss.clients.forEach(client => {
+		if (client.authenticated) client.Send(obj)
+	})
+}
+funcs.init(wss)
 
 wss.on("connection", ws => {
 	ws.Send = obj => {
@@ -13,8 +19,8 @@ wss.on("connection", ws => {
 	ws.on("message", data => {
 		try {
 			data = JSON.parse(data)
-		} catch {
-			console.error("Client sent invalid data", data)
+		} catch (e) {
+			console.error("Client sent invalid data", e)
 			return
 		}
 		// console.log(data)
@@ -35,9 +41,3 @@ wss.on("connection", ws => {
 
 wss.on("listening", () => console.log("Ready boi"))
 wss.on("error", console.error)
-
-wss.broadcast = obj => {
-	wss.clients.forEach(client => {
-		if (client.authenticated) client.Send(obj)
-	})
-}

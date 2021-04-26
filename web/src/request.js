@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store"
+import { devices, onlines } from "./store"
 export const status = writable([])
 export const getStatus = () => get(status)
 
@@ -23,7 +24,6 @@ function close() {
 function onError(e) {
 	if (waiting2Connect) return
 	if (ws.readyState === 0) return
-	console.error(e)
 	reset()
 	waiting2Connect = true
 	setTimeout(connect, socketError ? 2000 : 500)
@@ -32,14 +32,12 @@ function onError(e) {
 function connect() {
 	ws = new WebSocket(API)
 	waiting2Connect = false
-	console.log("Openning connection")
 	ws.onerror = e => {
 		socketError = true
 		onError(e)
 	}
 	ws.onclose = onError
 	ws.onopen = () => {
-		console.log("Connected")
 		status.update(e => {
 			e.connected = true
 			return e
@@ -53,7 +51,7 @@ function connect() {
 			console.error("Server sent invalid data", data.data)
 			return
 		}
-		console.log(data)
+		if (!PRODUCTION) console.log(data)
 		switch (data.event) {
 			case "login":
 				status.update(e => {
@@ -63,11 +61,11 @@ function connect() {
 
 				resolves[data.nonce](data)
 				delete resolves[data.nonce]
+				onlines.set(data.onlines)
 				break
 
-			case "ping":
-				resolves[data.nonce](data)
-				delete resolves[data.nonce]
+			case "update":
+				onlines.set(data.data)
 				break
 
 			case "wake":
@@ -80,35 +78,14 @@ function connect() {
 				delete resolves[data.nonce]
 				break
 
+			case "devices":
+				devices.set(data.devices)
+				break
+
 			default:
 				console.error("Unkown event from server", data.event)
 		}
 	}
-}
-
-async function make(point, data) {
-	const res = await fetch(API + point, {
-		method: "post",
-		headers: {
-			"Content-Type": "application/json",
-			key: localStorage.getItem("token"),
-		},
-		body: JSON.stringify(data),
-		mode: "cors",
-	})
-	if (res.ok) {
-		return res.json()
-	} else {
-		throw null
-	}
-}
-
-function ping(host) {
-	return new Promise(resolve => {
-		let nonce = requestids++
-		ws.send(JSON.stringify({ event: "ping", host, nonce }))
-		resolves[nonce] = resolve
-	})
 }
 
 function wake(mac) {
@@ -137,4 +114,4 @@ function login(key) {
 	})
 }
 
-export { ping, wake, login, save, close }
+export { wake, login, save, close }

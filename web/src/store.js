@@ -4,9 +4,7 @@ import { save } from "./request"
 const toCheck = ["name", "mac", "host"]
 
 const devices = writable([])
-
-devices.subscribe(console.log)
-
+const onlines = writable([])
 function validate(current, data) {
 	for (var i = 0; i < current.length; i++) {
 		if (current[i]["host"] === data["host"]) return true
@@ -17,10 +15,7 @@ function validate(current, data) {
 function remove(index) {
 	return new Promise(resolve => {
 		const current = get(devices).filter((e, i) => i !== index)
-		save(current).then(data => {
-			devices.set(data.devices)
-			resolve()
-		})
+		save(current).then(resolve)
 	})
 }
 
@@ -28,11 +23,7 @@ function add(data) {
 	return new Promise((resolve, reject) => {
 		const current = get(devices)
 		if (validate(current, data)) return reject()
-		const promise = save([...current, data])
-		promise.then(data => {
-			devices.set(data.devices)
-			resolve()
-		})
+		save([...current, data]).then(resolve)
 	})
 }
 
@@ -42,12 +33,8 @@ function edit(index, data) {
 		current.splice(index, 1)
 		if (validate(current, data)) return reject()
 		current[index] = data
-		console.log(current, data)
-		save(current).then(data => {
-			devices.set(data.devices)
-			resolve()
-		})
+		save(current).then(resolve)
 	})
 }
 
-export { devices, remove, add, edit, toCheck }
+export { devices, onlines, remove, add, edit, toCheck }

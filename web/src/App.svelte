@@ -4,6 +4,7 @@
 	import AddModal from "./modal.svelte"
 	import LoginPage from "./login.svelte"
 	import { status, close } from "./request"
+	import { onlines } from "./store"
 
 	let modalopen = false
 

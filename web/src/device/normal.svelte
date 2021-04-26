@@ -1,9 +1,9 @@
 <script>
-	import { ping, wake } from "../request"
+	import { wake } from "../request"
 	import { onMount } from "svelte"
 	import { slide, scale } from "svelte/transition"
 	import { createEventDispatcher } from "svelte"
-	import { remove } from "../store"
+	import { remove, onlines } from "../store"
 	const dispatch = createEventDispatcher()
 
 	export let mac, name, host, index
@@ -11,31 +11,25 @@
 	const wakeTimeout = 2 * 60 * 1000
 	const confirmTimeout = 2.5 * 1000
 	const updateRate = 1000
-	const aliveRate = 5 * 1000
 
-	let waitingon, errorWake, since, online, lastUpdate, pingPromise, deletePromise
-	let wakingPromise, sinceTimer, aliveTimer, deleteConfirm, wakeConfirm
+	let waitingon, errorWake, since, online, lastUpdate, deletePromise
+	let wakingPromise, sinceTimer, deleteConfirm, wakeConfirm
 
-	onMount(() => {
-		sinceTimer = setInterval(sinceUpdate, updateRate)
-		aliveTimer = setInterval(aliveUpdate, aliveRate)
-		aliveUpdate()
-		return () => {
-			clearInterval(sinceTimer)
-			clearInterval(aliveTimer)
+	onlines.subscribe(onlines => {
+		if (onlines.hasOwnProperty(host)) {
+			online = onlines[host]
+			lastUpdate = performance.now()
 		}
 	})
 
-	function aliveUpdate() {
-		pingPromise = ping(host).then(data => {
-			lastUpdate = performance.now()
-			online = data.status
-		})
-	}
-
-	function sinceUpdate() {
-		since = Math.floor((performance.now() - lastUpdate) / 1000)
-	}
+	onMount(() => {
+		sinceTimer = setInterval(() => {
+			since = Math.floor((performance.now() - lastUpdate) / 1000)
+		}, updateRate)
+		return () => {
+			clearInterval(sinceTimer)
+		}
+	})
 
 	function delet() {
 		if (!deleteConfirm) {
@@ -72,12 +66,12 @@
 	}
 </script>
 
-<div class="d-flex font-size-18" in:scale={{ duration: 200 }}>
-	<span class="px-5 font-weight-bold">
+<div class="d-flex font-size-18 flex-wrap" in:scale={{ duration: 200 }}>
+	<span class="px-5 font-weight-bold mr-auto">
 		<i class="fad fa-edit hover" on:click={() => dispatch("edit")} />
 		{name}
 	</span>
-	<span class="text-muted ml-auto font-size-16">
+	<span class="text-muted font-size-16">
 		{#if online === undefined}
 			Loading <i class="fad fa-spinner-third fa-spin" />
 		{:else if waitingon && !online}

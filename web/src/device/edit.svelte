@@ -44,6 +44,7 @@
 				class="form-control"
 				on:change={e => change("name", e)}
 				disabled={submiting}
+				maxlength="18"
 			/>
 		</label>
 		<label class="w-full">
@@ -54,6 +55,7 @@
 				class="form-control"
 				on:change={e => change("mac", e)}
 				disabled={submiting}
+				maxlength="17"
 			/>
 		</label>
 		<label class="w-full">
@@ -64,6 +66,7 @@
 				class="form-control"
 				on:change={e => change("host", e)}
 				disabled={submiting}
+				maxlength="18"
 			/>
 		</label>
 		<div class="text-right mt-20">

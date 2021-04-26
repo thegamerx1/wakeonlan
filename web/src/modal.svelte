@@ -11,11 +11,15 @@
 	reset()
 
 	function onSubmit() {
-		error = false
 		submiting = true
 		add(data)
-			.then(() => {
-				show = false
+			.then(data => {
+				if (data.success) {
+					show = false
+				} else {
+					error = true
+					submiting = false
+				}
 			})
 			.catch(e => {
 				error = true
@@ -43,9 +47,6 @@
 		<div class="modal-content">
 			<h5 class="modal-title">Add device</h5>
 			<form on:submit|preventDefault={onSubmit}>
-				{#if error}
-					<div class="invalid-feedback">A device with that hostname already exists!</div>
-				{/if}
 				<label class="w-full"
 					>Name
 					<input
@@ -55,6 +56,7 @@
 						class="form-control"
 						placeholder="Name"
 						disabled={submiting}
+						maxlength="18"
 					/>
 				</label>
 				<label class="w-full"
@@ -65,6 +67,7 @@
 						class="form-control"
 						placeholder="00:00:00:00:00"
 						disabled={submiting}
+						maxlength="17"
 					/>
 				</label>
 				<label class="w-full"
@@ -75,8 +78,12 @@
 						class="form-control"
 						placeholder="192.168.1.1"
 						disabled={submiting}
+						maxlength="18"
 					/>
 				</label>
+				{#if error}
+					<div class="invalid-feedback">Error</div>
+				{/if}
 				<div class="text-right mt-20">
 					<button
 						class="btn mr-5"
@@ -84,7 +91,13 @@
 						disabled={submiting}
 						on:click={() => (show = false)}>Close</button
 					>
-					<button class="btn btn-primary" type="submit" disabled={submiting}>Add</button>
+					<button class="btn btn-primary w-100" type="submit" disabled={submiting}>
+						{#if submiting}
+							<i class="fas fa-circle-notch fa-spin" />
+						{:else}
+							Add
+						{/if}
+					</button>
 				</div>
 			</form>
 		</div>
