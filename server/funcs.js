@@ -6,8 +6,9 @@ var pingCache = {}
 const pingInterval = 5 * 1000
 const password = process.env.APP_KEY
 if (!password) {
-	throw "Invalid password: " + password
+	throw new Error("Invalid password: " + password)
 }
+
 const needed = ["name", "mac", "host"]
 var wss
 refresh()
