@@ -23,7 +23,7 @@ wss.on("connection", ws => {
 			console.error("Client sent invalid data", e)
 			return
 		}
-		console.log(data)
+
 		const event = data.event
 		let found = false
 		for (const key of Object.keys(funcs)) {

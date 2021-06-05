@@ -4,7 +4,10 @@ const pong = require("./ping").ping
 
 var pingCache = {}
 const pingInterval = 5 * 1000
-
+const password = process.env.APP_KEY
+if (!password) {
+	throw "Invalid password: " + password
+}
 const needed = ["name", "mac", "host"]
 var wss
 refresh()
@@ -72,8 +75,7 @@ function save(data, ws) {
 
 function login(data, ws) {
 	if (ws.authenticated) return
-	const success = data.login === process.env.APP_KEY
-	console.log(data.login, process.env.APP_KEY)
+	const success = data.login === password
 	if (success) ws.authenticated = true
 	ws.Send({
 		event: "login",
