@@ -3,7 +3,7 @@ import { devices, onlines } from "./store"
 export const status = writable([])
 export const getStatus = () => get(status)
 
-const API = PRODUCTION ? "wss://lanapi.ndrx.ml" : "ws://localhost:9000"
+const API = PRODUCTION ? "wss://wake.ndrx.ml/api" : "ws://localhost:9000"
 
 let socketError = false
 var ws

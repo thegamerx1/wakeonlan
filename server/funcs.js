@@ -73,6 +73,7 @@ function save(data, ws) {
 function login(data, ws) {
 	if (ws.authenticated) return
 	const success = data.login === process.env.APP_KEY
+	console.log(data.login, process.env.APP_KEY)
 	if (success) ws.authenticated = true
 	ws.Send({
 		event: "login",
