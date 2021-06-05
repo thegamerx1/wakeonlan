@@ -6,11 +6,11 @@
     "start": "node index"
   },
   "dependencies": {
-    "dotenv": "^8.2.0",
+    "dotenv": "^10.0.0",
     "ping": "^0.4.1",
     "simple-json-db": "^1.2.3",
     "wakeonlan": "^0.1.0",
-    "ws": "^7.4.5"
+    "ws": "^7.4.6"
   },
   "nodemonConfig": {
     "ignore": [

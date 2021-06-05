@@ -1,6 +1,6 @@
 require("dotenv").config()
 const WebSocket = require("ws")
-const port = process.env.port || 80
+const port = process.env.APP_PORT || 80
 const wss = new WebSocket.Server({ port })
 const funcs = require("./funcs")
 wss.broadcast = obj => {
