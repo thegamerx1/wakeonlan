@@ -6,6 +6,6 @@ if (!fs.existsSync(configDir)) {
 	fs.mkdirSync(configDir)
 }
 if (!db.has("devices")) {
-	db.set("devices", "[]")
+	db.set("devices", [])
 }
 module.exports = db
