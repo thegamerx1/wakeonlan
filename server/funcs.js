@@ -5,7 +5,6 @@ const pong = require("./ping").ping
 var pingCache = {}
 const pingInterval = 5 * 1000
 const password = process.env.APP_KEY
-console.log(process.env)
 if (!password) {
 	throw new Error("Invalid password: " + password)
 }
