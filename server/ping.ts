@@ -1,22 +1,20 @@
-const icmp = require("ping")
-const { performance } = require("perf_hooks")
+import icmp from "ping"
+import { performance } from "perf_hooks"
 
-function ping(host) {
+export function ping(host: string): Promise<number> {
 	return new Promise(resolve => {
 		let resolved = false
 		const start = performance.now()
-		const send = out => {
+		const send = (out: number) => {
 			if (resolved) return
 			resolved = true
 			resolve(out)
 		}
 		icmp.sys.probe(host, alive => {
-			send(alive ? performance.now() - start : alive)
+			send(alive ? performance.now() - start : 0)
 		})
 		setTimeout(() => {
-			send(false)
+			send(0)
 		}, 500)
 	})
 }
-
-module.exports = { ping }
