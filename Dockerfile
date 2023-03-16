@@ -22,6 +22,7 @@ RUN pnpm install --frozen-lockfile
 COPY server/. .
 RUN pnpm build
 COPY --from=build /app/build /app/public
+# Ugly fix that works..
 RUN mv dist/* .
 
 # TODO: Volume data folder
