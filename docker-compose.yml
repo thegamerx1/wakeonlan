@@ -1,0 +1,10 @@
+version: "3.7"
+
+services:
+   web:
+      build: .
+      container_name: wakeonlan
+      environment:
+         - APP_KEY=4p3Zzpv8oPaUs9G5dr39
+         - APP_PORT=2938
+      network_mode: host
