@@ -1,36 +1,46 @@
-<script>
-	import { edit } from "../store"
-	import { createEventDispatcher } from "svelte"
-	const dispatch = createEventDispatcher()
+<script lang="ts">
+	import { edit } from '../store';
+	import { createEventDispatcher } from 'svelte';
+	import Spinner from '$lib/icons/spinner.svelte';
+	const dispatch = createEventDispatcher();
 
-	let error, submiting, promise
-	export let data, index
-	let newdata = { ...data }
+	let error = false,
+		submiting = false,
+		promise: Promise<void>;
+	export let data, index: number;
+	let newdata = { ...data };
 
-	function focus(e) {
-		e.focus()
+	function focus(e: HTMLElement) {
+		e.focus();
 	}
 
-	function change(what, e) {
-		e = e.target
-		if (e.value === "" || e.value === " ") e.value = data[what]
+	function change(
+		what,
+		e: Event & {
+			currentTarget: EventTarget & HTMLInputElement;
+		}
+	) {
+		let t = e.currentTarget;
+		if (t.value === '' || t.value === ' ') {
+			t.value = data[what];
+		}
 	}
 
 	function onSubmit() {
-		error = false
-		submiting = true
+		error = false;
+		submiting = true;
 		promise = edit(index, newdata)
 			.then(() => {
-				dispatch("cancel")
+				dispatch('cancel');
 			})
-			.catch(e => {
-				console.error(e)
-				error = true
-			})
+			.catch((e) => {
+				console.error(e);
+				error = true;
+			});
 	}
 </script>
 
-<div class="font-size-18" z>
+<div class="font-size-18">
 	{#if error}
 		<div class="alert alert-danger" role="alert">Duplicate data found</div>
 	{/if}
@@ -42,7 +52,7 @@
 				use:focus
 				bind:value={newdata.name}
 				class="form-control"
-				on:change={e => change("name", e)}
+				on:change={(e) => change('name', e)}
 				disabled={submiting}
 				maxlength="18"
 			/>
@@ -53,7 +63,7 @@
 				type="text"
 				bind:value={newdata.mac}
 				class="form-control"
-				on:change={e => change("mac", e)}
+				on:change={(e) => change('mac', e)}
 				disabled={submiting}
 				maxlength="17"
 			/>
@@ -64,7 +74,7 @@
 				type="text"
 				bind:value={newdata.host}
 				class="form-control"
-				on:change={e => change("host", e)}
+				on:change={(e) => change('host', e)}
 				disabled={submiting}
 				maxlength="18"
 			/>
@@ -74,11 +84,11 @@
 				class="btn mr-5"
 				type="button"
 				disabled={submiting}
-				on:click={() => dispatch("cancel")}>Cancel</button
+				on:click={() => dispatch('cancel')}>Cancel</button
 			>
 			<button class="btn btn-primary" type="submit" disabled={submiting}>
 				{#await promise}
-					<i class="fas fa-circle-notch fa-spin" />
+					<Spinner />
 				{:then}
 					Done
 				{/await}
