@@ -1,44 +1,52 @@
-<script>
-	import { add, toCheck } from "./store"
+<script lang="ts" context="module">
+	import { writable } from 'svelte/store';
 
-	export let show = false
-	let data, error, submiting, input
+	export let showModal = writable(false);
+</script>
+
+<script lang="ts">
+	import Spinner from './icons/spinner.svelte';
+	import { add } from './store';
+
+	export let show = false;
+	const defaultDevice: Device = { host: '', mac: '', name: '' };
+	let data = { ...defaultDevice },
+		error = false,
+		submiting = false,
+		input: HTMLElement;
 
 	$: if (show) {
-		reset()
-		input.focus()
+		reset();
+		input.focus();
 	}
-	reset()
+	reset();
 
 	function onSubmit() {
-		submiting = true
+		submiting = true;
 		add(data)
-			.then(data => {
+			.then((data: any) => {
 				if (data.success) {
-					show = false
+					show = false;
 				} else {
-					error = true
-					submiting = false
+					error = true;
+					submiting = false;
 				}
 			})
-			.catch(e => {
-				error = true
-				submiting = false
-			})
+			.catch((e) => {
+				error = true;
+				submiting = false;
+			});
 	}
 
 	function reset() {
-		error = submiting = false
-		data = {}
-		toCheck.forEach(check => {
-			data[check] = ""
-		})
+		error = submiting = false;
+		data = { ...defaultDevice };
 	}
 </script>
 
 <div
 	class="modal"
-	class:show
+	class:show={$showModal}
 	role="dialog"
 	data-overlay-dismissal-disabled="true"
 	data-esc-dismissal-disabled="true"
@@ -47,8 +55,8 @@
 		<div class="modal-content">
 			<h5 class="modal-title">Add device</h5>
 			<form on:submit|preventDefault={onSubmit}>
-				<label class="w-full"
-					>Name
+				<label class="w-full">
+					Name
 					<input
 						type="text"
 						bind:this={input}
@@ -89,11 +97,11 @@
 						class="btn mr-5"
 						type="button"
 						disabled={submiting}
-						on:click={() => (show = false)}>Close</button
+						on:click={() => showModal.set(false)}>Close</button
 					>
 					<button class="btn btn-primary w-100" type="submit" disabled={submiting}>
 						{#if submiting}
-							<i class="fas fa-circle-notch fa-spin" />
+							<Spinner />
 						{:else}
 							Add
 						{/if}
