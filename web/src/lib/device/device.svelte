@@ -1,11 +1,11 @@
-<script>
-	import DevNormal from "./normal.svelte"
-	import DevEditing from "./edit.svelte"
-	import { scale } from "svelte/transition"
+<script lang="ts">
+	import DevNormal from './normal.svelte';
+	import DevEditing from './edit.svelte';
+	import { scale } from 'svelte/transition';
 
-	let editing
+	let editing = false;
 
-	export let data, index
+	export let data: Device, index: number;
 </script>
 
 <div class="card m-10 w-300 px-25 d-flex flex-column align-items-top" transition:scale>
