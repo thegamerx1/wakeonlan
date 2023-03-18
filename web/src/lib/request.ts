@@ -4,43 +4,51 @@ import { dev } from '$app/environment';
 export const status = writable({ connected: false, authenticated: false, error: false });
 export const getStatus = () => get(status);
 
-const API = dev ? 'ws://localhost:9000/ws' : 'wss://wake.ndrx.ml/ws';
+export const passwordStore = writable('');
+const API = dev ? `ws://${window.location.hostname}:9000/ws` : `wss://wake.ndrx.ml/ws`;
 
 let socketError = false;
 let ws: WebSocket;
 const resolves: any[number] = [];
 let requestids = 1;
-let waiting2Connect = false;
 reset();
 connect();
+let password = '';
+passwordStore.subscribe((pass) => () => (password = pass));
 
 function reset() {
+	if (ws) ws.close();
 	status.set({ connected: false, authenticated: false, error: socketError });
 }
 
-function close() {
-	ws.close();
-}
-
 function onError(_e: Event | CloseEvent) {
-	if (waiting2Connect) return;
 	if (ws.readyState === 0) return;
 	reset();
-	waiting2Connect = true;
 	setTimeout(connect, socketError ? 2000 : 500);
 }
 
 function connect() {
 	ws = new WebSocket(API);
-	waiting2Connect = false;
 	ws.onerror = (e) => {
 		socketError = true;
 		onError(e);
 	};
+	ws.addEventListener('ping', () => console.log('gilipollas'));
 	ws.onclose = onError;
 	ws.onopen = () => {
+		let auth = false;
+		if (password) {
+			login(password)
+				.then(() => {
+					auth = true;
+				})
+				.catch(() => {
+					auth = false;
+				});
+		}
 		status.update((e) => {
 			e.connected = true;
+			e.authenticated = auth;
 			return e;
 		});
 	};
@@ -104,10 +112,13 @@ function save(devices: Device[]) {
 	});
 }
 
-function login(key: string | undefined) {
+function login(login: string) {
 	return new Promise((resolve) => {
-		let nonce = sendEvent('login', { login: key });
+		let nonce = sendEvent('login', { login });
 		resolves[nonce] = resolve;
+	}).then((data: any) => {
+		devices.set(Array.isArray(data.devices) ? data.devices : []);
+		return data;
 	});
 }
 
@@ -117,4 +128,4 @@ function sendEvent(event: string, obj: object) {
 	return nonce;
 }
 
-export { wake, login, save, close };
+export { wake, login, save };

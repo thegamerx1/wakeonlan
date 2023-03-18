@@ -5,6 +5,7 @@ const devices = writable<Device[]>([]);
 interface Onlines {
 	[key: string]: number;
 }
+
 const onlines = writable<Onlines>({});
 function validate(current: Device[], data: Device) {
 	for (let i = 0; i < current.length; i++) {
@@ -15,8 +16,7 @@ function validate(current: Device[], data: Device) {
 
 function remove(index: number) {
 	return new Promise((resolve) => {
-		const current = get(devices).filter((e, i) => i !== index);
-		save(current).then(resolve);
+		save(get(devices).filter((e, i) => i !== index)).then(resolve);
 	});
 }
 
@@ -32,8 +32,11 @@ function edit(index: number, data: Device) {
 	return new Promise((resolve, reject) => {
 		const current = get(devices);
 		current.splice(index, 1);
-		if (validate(current, data)) return reject();
-		current[index] = data;
+		if (validate(current, data)) {
+			current.unshift(data);
+			return reject();
+		}
+		current.unshift(data);
 		save(current).then(resolve);
 	});
 }
