@@ -8,14 +8,13 @@
 	import Spinner from './icons/spinner.svelte';
 	import { add } from './store';
 
-	export let show = false;
-	const defaultDevice: Device = { host: '', mac: '', name: '' };
+	const defaultDevice = { host: '', mac: '', name: '' };
 	let data = { ...defaultDevice },
 		error = false,
 		submiting = false,
 		input: HTMLElement;
 
-	$: if (show) {
+	$: if ($showModal) {
 		reset();
 		input.focus();
 	}
@@ -26,7 +25,7 @@
 		add(data)
 			.then((data: any) => {
 				if (data.success) {
-					show = false;
+					$showModal = false;
 				} else {
 					error = true;
 					submiting = false;
@@ -92,14 +91,18 @@
 				{#if error}
 					<div class="invalid-feedback">Error</div>
 				{/if}
-				<div class="text-right mt-20">
+				<div class="buttons mt-20">
 					<button
 						class="btn mr-5"
 						type="button"
 						disabled={submiting}
 						on:click={() => showModal.set(false)}>Close</button
 					>
-					<button class="btn btn-primary w-100" type="submit" disabled={submiting}>
+					<button
+						class="btn btn-primary w-100 flex items-center justify-center"
+						type="submit"
+						disabled={submiting}
+					>
 						{#if submiting}
 							<Spinner />
 						{:else}
@@ -111,3 +114,10 @@
 		</div>
 	</div>
 </div>
+
+<style lang="sass">
+	.buttons
+		@apply flex flex-row xl:justify-end
+		button
+			@apply flex-1 xl:flex-initial
+</style>
