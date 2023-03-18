@@ -2,16 +2,16 @@
 	import { fly } from 'svelte/transition';
 	import { status } from '$lib/request';
 	import { devices } from '$lib/store';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import Device from '$lib/device/device.svelte';
 	import { showModal } from '$lib/Modal.svelte';
+	import { browser } from '$app/environment';
 
-	onMount(() => {
+	if (browser) {
 		if (!$status.authenticated) {
 			goto('/login');
 		}
-	});
+	}
 </script>
 
 <div class="my-10 p-10">
