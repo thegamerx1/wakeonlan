@@ -17,6 +17,8 @@ const wss = new WSServer({ server, path: "/ws", WebSocket: WSSocket })
 funcs.init(wss)
 
 wss.on("connection", ws => {
+	ws.heartbeat()
+	ws.on("pong", ws.heartbeat.bind(ws))
 	ws.on("message", data => {
 		const [ev, json] = data.toString().split("|", 2)
 
@@ -47,5 +49,17 @@ wss.on("connection", ws => {
 	})
 })
 
+const interval = setInterval(function ping() {
+	wss.clients.forEach(function each(ws) {
+		if (ws.isAlive === false) return ws.terminate()
+
+		ws.isAlive = false
+		ws.ping()
+	})
+}, 30000)
+
+wss.on("close", function close() {
+	clearInterval(interval)
+})
 server.listen(PORT, () => console.log("Ready boi"))
 wss.on("error", console.error)

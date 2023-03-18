@@ -26,7 +26,7 @@ async function refresh() {
 	db.get("devices").forEach((device: Device) => {
 		promises.push(
 			ping(device.host).then(status => {
-				outnew[device.host] = status
+				outnew[device.host] = Math.floor(status)
 			})
 		)
 	})
@@ -57,7 +57,10 @@ function save(data: SaveEvent, ws: WSSocket) {
 
 function login(data: LoginEvent, ws: WSSocket) {
 	const success = data.login === password
-	if (success) ws.authenticated = true
+	if (success) {
+		ws.authenticated = true
+		refresh()
+	}
 	ws.Send({
 		event: "login",
 		success: success,

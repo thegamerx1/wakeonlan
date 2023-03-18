@@ -3,11 +3,16 @@ import { z } from "zod"
 
 export class WSSocket extends WebSocket {
 	authenticated = false
+	isAlive = false
 
 	Send(obj: object) {
 		if (this.readyState === this.OPEN) {
 			this.send(JSON.stringify(obj))
 		}
+	}
+
+	heartbeat() {
+		this.isAlive = true
 	}
 
 	invalid(err: any) {
