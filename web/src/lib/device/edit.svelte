@@ -7,7 +7,7 @@
 	let error = false,
 		submiting = false,
 		promise: Promise<void>;
-	export let data, index: number;
+	export let data: Device, index: number;
 	let newdata = { ...data };
 
 	function focus(e: HTMLElement) {
@@ -15,7 +15,7 @@
 	}
 
 	function change(
-		what,
+		what: keyof Device,
 		e: Event & {
 			currentTarget: EventTarget & HTMLInputElement;
 		}
@@ -79,14 +79,18 @@
 				maxlength="18"
 			/>
 		</label>
-		<div class="text-right mt-20">
+		<div class="text-right mt-20 flex">
 			<button
-				class="btn mr-5"
+				class="btn mr-5 flex-1"
 				type="button"
 				disabled={submiting}
 				on:click={() => dispatch('cancel')}>Cancel</button
 			>
-			<button class="btn btn-primary" type="submit" disabled={submiting}>
+			<button
+				class="btn btn-primary flex items-center justify-center flex-1"
+				type="submit"
+				disabled={submiting}
+			>
 				{#await promise}
 					<Spinner />
 				{:then}

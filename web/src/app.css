@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+svg {
+	display: inline;
+	width: 1em;
+	height: 1em;
+	aspect-ratio: 1;
+}
