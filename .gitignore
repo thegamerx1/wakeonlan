@@ -3,3 +3,4 @@ node_modules
 .vscode
 server/dist
 data
+web/public
