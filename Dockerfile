@@ -25,7 +25,5 @@ COPY --from=build /app/build /app/public
 # Ugly fix that works..
 RUN mv dist/* .
 
-# TODO: Volume data folder
-
 EXPOSE 80
 CMD [ "node", "server.js" ]
