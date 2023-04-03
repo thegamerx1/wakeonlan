@@ -6,6 +6,7 @@
 	import Device from '$lib/device/device.svelte';
 	import { showModal } from '$lib/Modal.svelte';
 	import { browser } from '$app/environment';
+	import Spinner from '$lib/icons/spinner.svelte';
 
 	if (browser) {
 		if (!$status.authenticated) {
@@ -18,9 +19,13 @@
 	<button class="btn" on:click={() => showModal.set(true)} in:fly>Add device</button>
 </div>
 <div class="flex p-15 flex-wrap flex-row justify-content-center align-items-start">
-	{#each $devices as data, i (data.host)}
-		<Device {data} index={i} />
+	{#if $status.connected}
+		{#each $devices as data, i (data.host)}
+			<Device {data} index={i} />
+		{:else}
+			No devices!
+		{/each}
 	{:else}
-		No devices!
-	{/each}
+		<Spinner />
+	{/if}
 </div>
