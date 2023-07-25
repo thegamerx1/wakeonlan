@@ -12,6 +12,7 @@ const server = createServer(app)
 app.use("*", (req, res) => {
 	res.sendFile(__dirname + "/public/index.html")
 })
+
 const wss = new WSServer({ server, path: "/ws", WebSocket: WSSocket })
 
 funcs.init(wss)
@@ -61,5 +62,5 @@ const interval = setInterval(function ping() {
 wss.on("close", function close() {
 	clearInterval(interval)
 })
-server.listen(PORT, () => console.log("Ready boi"))
+server.listen(PORT, () => console.log(`Ready boi :${PORT}`))
 wss.on("error", console.error)

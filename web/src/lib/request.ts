@@ -1,11 +1,12 @@
 import { writable, get } from 'svelte/store';
 import { devices, onlines } from './store';
 import { dev } from '$app/environment';
+
 export const status = writable({ connected: false, authenticated: false, error: false });
 export const getStatus = () => get(status);
 
 export const passwordStore = writable('');
-const API = dev ? `ws://${window.location.hostname}:9000/ws` : `wss://wake.ndrx.ml/ws`;
+const API = `${window.location.protocol == 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
 let socketError = false;
 let ws: WebSocket;
