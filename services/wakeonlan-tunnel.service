@@ -1,0 +1,9 @@
+[Unit]
+Description=WakeOnLan Tunnel
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/autossh -M 0 -N -q -o "ServerAliveInterval 60" -o "ServerAliveCountMax 3" -l ndr ndrx.ml -R 7002:localhost:7002 -i /srv/node/wakeonlan/server/id_rsa
+
+[Install]
+WantedBy=multi-user.target

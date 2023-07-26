@@ -1,0 +1,14 @@
+[Unit]
+Description=Wake On Lan
+After=network.target
+
+[Service]
+Environment="NODE_ENV=production"
+Environment="APP_PORT=7002"
+Environment="APP_KEY=secret"
+Type=simple
+ExecStart=/usr/bin/node /srv/node/wakeonlan/server/index.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
