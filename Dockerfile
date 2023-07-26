@@ -26,4 +26,4 @@ COPY --from=build /app/build /app/public
 RUN mv dist/* .
 
 EXPOSE 80
-CMD [ "node", "server.js" ]
+CMD [ "node", "index.js" ]
