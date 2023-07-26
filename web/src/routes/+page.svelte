@@ -5,10 +5,9 @@
 	import { goto } from '$app/navigation';
 	import Device from '$lib/device/device.svelte';
 	import { showModal } from '$lib/Modal.svelte';
-	import { browser } from '$app/environment';
 	import Spinner from '$lib/icons/spinner.svelte';
 
-	if (browser) {
+	$: {
 		if (!$status.authenticated) {
 			goto('/login');
 		}
