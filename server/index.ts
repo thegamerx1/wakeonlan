@@ -1,21 +1,21 @@
 import express from "express"
 import { createServer } from "http"
 import { z } from "zod"
-import funcs from "./funcs"
+import { FunctionManager } from "./funcs"
 import { WSServer, Lookup, WSSocket } from "./websocket"
 
-const PORT = process.env.APP_PORT || 80
+const PORT = process.env.APP_PORT || 9000
 
 const app = express()
 app.use(express.static(__dirname + "/public"))
 const server = createServer(app)
+
 app.use("*", (req, res) => {
 	res.sendFile(__dirname + "/public/index.html")
 })
 
 const wss = new WSServer({ server, path: "/ws", WebSocket: WSSocket })
-
-funcs.init(wss)
+const manager = new FunctionManager(wss)
 
 wss.on("connection", ws => {
 	ws.heartbeat()
@@ -46,7 +46,7 @@ wss.on("connection", ws => {
 			}
 		}
 
-		funcs[event](params as any, ws)
+		manager[event](params as any, ws)
 	})
 })
 
