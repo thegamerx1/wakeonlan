@@ -3,7 +3,7 @@ import { save } from './request';
 
 const devices = writable<Device[]>([]);
 interface Onlines {
-	[key: string]: number;
+	[key: string]: number | null;
 }
 
 const onlines = writable<Onlines>({});

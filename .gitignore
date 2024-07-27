@@ -4,3 +4,4 @@ node_modules
 server/dist
 data
 web/public
+target

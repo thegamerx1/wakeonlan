@@ -1,0 +1,35 @@
+FROM --platform=$BUILDPLATFORM node:18-alpine AS frontend
+RUN npm i -g pnpm
+RUN mkdir -p /app/
+WORKDIR /app
+
+COPY web/package*.json ./
+COPY web/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY web/. .
+RUN pnpm build
+
+
+
+FROM --platform=$BUILDPLATFORM rust:1.80 AS backend
+WORKDIR /app
+RUN rustup target add aarch64-unknown-linux-gnu
+RUN apt-get update && apt-get install gcc-aarch64-linux-gnu -y
+
+COPY ./backend/Cargo.lock ./backend/Cargo.toml .
+COPY ./backend/src ./src
+
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+ENV CC=aarch64-linux-gnu-gcc
+RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/app/target cargo build --release --target aarch64-unknown-linux-gnu && cp ./target/aarch64-unknown-linux-gnu/release/backend .
+# RUN --mount=type=cache,target=/app/target file ./target/aarch64-unknown-linux-gnu/release/backend && sleep 59
+
+FROM --platform=linux/arm64/v8 debian:bookworm-slim
+
+COPY --from=frontend /app/build /app/public
+COPY --from=backend /app/backend /app/
+
+ENV RUST_LOG=info
+ENV APP_PORT=80
+ENV APP_HOST=0.0.0.0
+ENTRYPOINT [ "/app/backend" ]
