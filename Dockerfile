@@ -1,7 +1,5 @@
-FROM node:16-alpine AS base
+FROM --platform=$BUILDPLATFORM node:18-alpine AS frontend
 RUN npm i -g pnpm
-
-FROM base AS build
 RUN mkdir -p /app/
 WORKDIR /app
 
@@ -11,19 +9,22 @@ RUN pnpm install --frozen-lockfile
 COPY web/. .
 RUN pnpm build
 
-FROM base AS webserver
-ENV NODE_ENV=production
-RUN mkdir -p /app/
+
+FROM --platform=$BUILDPLATFORM rust:1.80 AS backend
 WORKDIR /app
 
-COPY server/package*.json ./
-COPY server/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY server/. .
-RUN pnpm build
-COPY --from=build /app/build /app/public
-# Ugly fix that works..
-RUN mv dist/* .
+COPY ./backend/Cargo.lock ./backend/Cargo.toml .
+COPY ./backend/src ./src
 
-EXPOSE 80
-CMD [ "node", "index.js" ]
+RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/app/target cargo build --release && cp ./target/release/backend .
+
+FROM debian:bookworm-slim
+WORKDIR /app
+
+COPY --from=frontend /app/build /app/public
+COPY --from=backend /app/backend /app/
+
+ENV RUST_LOG=info
+ENV APP_PORT=80
+ENV APP_HOST=0.0.0.0
+ENTRYPOINT [ "./backend" ]

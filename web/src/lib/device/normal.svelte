@@ -18,14 +18,14 @@
 	let waitingon = false,
 		errorWake = false,
 		since = 0,
-		online = 0,
+		online: number | null = 0,
 		lastUpdate = 0,
 		deletePromise: Promise<any>;
 	let wakingPromise: Promise<any>, sinceTimer: number;
 
 	onlines.subscribe((onlines) => {
 		if (host in onlines) {
-			online = onlines[host];
+			online = onlines[host] ?? null;
 			lastUpdate = performance.now();
 		}
 	});
@@ -69,6 +69,8 @@
 		<svg
 			on:click={edit}
 			on:keyup={edit}
+			tabindex="0"
+			role="button"
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 24 24"
 			fill="none"
@@ -86,17 +88,17 @@
 	<div class="text-muted font-size-16 flex items-center justify-center">
 		{#if online === undefined}
 			<Spinner /> Loading
-		{:else if waitingon && !online}
+		{:else if waitingon && online == null}
 			<Spinner /> Waiting to turn on
 		{:else}
 			{#if since > 15}
 				<span>({since}s)</span>
 			{/if}
-			<span class={online ? 'text-success' : 'text-danger'}>
-				{#if online}
-					{online.toFixed(0)}ms <Wifi />
-				{:else}
+			<span class={online == null ? 'text-danger' : 'text-success'}>
+				{#if online == null}
 					Offline <Wifioff />
+				{:else}
+					{online.toFixed(0)}ms <Wifi />
 				{/if}
 			</span>
 		{/if}
@@ -104,7 +106,7 @@
 </div>
 {#if online !== undefined}
 	<div class="d-flex mt-15 buttonCont justify-content-end" in:slide>
-		{#if !online && !waitingon}
+		{#if online == null && !waitingon}
 			{#await wakingPromise}
 				<button class="btn flex items-center justify-center"><Spinner /></button>
 			{:then}

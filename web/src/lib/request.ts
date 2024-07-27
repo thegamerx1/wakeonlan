@@ -89,7 +89,7 @@ function connect() {
 				break;
 
 			case 'devices':
-				devices.set(data.devices);
+				devices.set(data.data);
 				break;
 
 			default:
@@ -125,7 +125,7 @@ function login(login: string) {
 
 function sendEvent(event: string, obj: object) {
 	let nonce = requestids++;
-	ws.send(event + '|' + JSON.stringify({ ...obj, nonce }));
+	ws.send(JSON.stringify({ ...obj, event: event, nonce }));
 	return nonce;
 }
 
