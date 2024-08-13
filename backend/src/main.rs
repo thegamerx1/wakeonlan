@@ -79,11 +79,21 @@ async fn main() {
         // The `ws()` filter will prepare Websocket handshake...
         .and(warp::ws())
         .and(users_warp)
+        .map(|ws: warp::ws::Ws, users| {
+            // This will call our function if the handshake succeeds.
+            ws.on_upgrade(move |socket| user_connected(socket, users))
+        });
+
+    let backend_gateway = warp::path("agent_ws")
+        // The `ws()` filter will prepare Websocket handshake...
+        .and(warp::ws())
+        .and(users_warp)
         .and(devices_warp)
         .map(|ws: warp::ws::Ws, users, devices| {
             // This will call our function if the handshake succeeds.
             ws.on_upgrade(move |socket| user_connected(socket, users, devices))
         });
+    let agent_routes = backend_gateway;
 
     let health_check = warp::path("health-check").map(|| format!("Server OK"));
     let html_file = warp::path("login").and(warp::fs::file("public/index.html"));
@@ -115,6 +125,7 @@ async fn main() {
 
     _ = join!(
         warp::serve(routes).run(SocketAddr::new(host, port)),
+        warp::serve(agent_routes).run(SocketAddr::new(host, port+1)),
         background_task
     );
 }

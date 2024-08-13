@@ -10,8 +10,7 @@ COPY web/. .
 RUN pnpm build
 
 
-
-FROM --platform=$BUILDPLATFORM rust:1.80 AS backend
+FROM --platform=$BUILDPLATFORM rust:slim-bookworm AS backend
 WORKDIR /app
 RUN rustup target add aarch64-unknown-linux-gnu
 RUN apt-get update && apt-get install gcc-aarch64-linux-gnu -y
@@ -22,9 +21,10 @@ COPY ./backend/src ./src
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 ENV CC=aarch64-linux-gnu-gcc
 RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/app/target cargo build --release --target aarch64-unknown-linux-gnu && cp ./target/aarch64-unknown-linux-gnu/release/backend .
-# RUN --mount=type=cache,target=/app/target file ./target/aarch64-unknown-linux-gnu/release/backend && sleep 59
+
 
 FROM --platform=linux/arm64/v8 debian:bookworm-slim
+WORKDIR /app
 
 COPY --from=frontend /app/build /app/public
 COPY --from=backend /app/backend /app/
