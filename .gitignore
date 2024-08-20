@@ -5,3 +5,5 @@ server/dist
 data
 web/public
 target
+backend/public
+web/node-modules

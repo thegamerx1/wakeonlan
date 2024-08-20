@@ -64,8 +64,8 @@
 	}
 </script>
 
-<div class="flex font-size-18 flex-wrap" in:scale={{ duration: 200 }}>
-	<div class="flex items-center px-5 font-weight-bold mr-auto uppercase">
+<div class="font-size-18 flex flex-wrap" in:scale={{ duration: 200 }}>
+	<div class="font-weight-bold mr-auto flex items-center px-5 uppercase">
 		<svg
 			on:click={edit}
 			on:keyup={edit}

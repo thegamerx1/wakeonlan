@@ -4,11 +4,20 @@
 	import Spinner from '$lib/icons/spinner.svelte';
 	const dispatch = createEventDispatcher();
 
+	export let data: Device, index: number;
+
 	let error = false,
 		submiting = false,
-		promise: Promise<void>;
-	export let data: Device, index: number;
-	let newdata = { ...data };
+		promise: Promise<void>,
+		newdata = { ...data };
+
+	function clipboard() {
+		navigator.clipboard.writeText(newdata.api_key ?? '');
+	}
+
+	function regenerate() {
+		newdata.api_key = crypto.randomUUID() + crypto.randomUUID();
+	}
 
 	function focus(e: HTMLElement) {
 		e.focus();
@@ -22,7 +31,7 @@
 	) {
 		let t = e.currentTarget;
 		if (t.value === '' || t.value === ' ') {
-			t.value = data[what];
+			t.value = data[what] ?? '';
 		}
 	}
 
@@ -79,7 +88,29 @@
 				maxlength="18"
 			/>
 		</label>
-		<div class="text-right mt-20 flex">
+		<label class="w-full">
+			API KEY
+			{#if newdata.api_key}
+				<input
+					type="text"
+					value={newdata.api_key.substring(0, 5) + '-*****'.repeat(3)}
+					class="form-control"
+					disabled={true}
+					maxlength="5"
+				/>
+			{/if}
+			<div class="flex w-full flex-row">
+				<button class="btn flex-1" type="button" disabled={submiting} on:click={() => regenerate()}
+					>Regenerate</button
+				>
+				{#if newdata.api_key}
+					<button class="btn flex-1" type="button" disabled={submiting} on:click={() => clipboard()}
+						>Copy</button
+					>
+				{/if}
+			</div>
+		</label>
+		<div class="mt-20 flex text-right">
 			<button
 				class="btn mr-5 flex-1"
 				type="button"
@@ -87,7 +118,7 @@
 				on:click={() => dispatch('cancel')}>Cancel</button
 			>
 			<button
-				class="btn btn-primary flex items-center justify-center flex-1"
+				class="btn btn-primary flex flex-1 items-center justify-center"
 				type="submit"
 				disabled={submiting}
 			>
