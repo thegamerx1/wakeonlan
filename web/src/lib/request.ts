@@ -2,7 +2,7 @@ import { writable, get } from 'svelte/store';
 import { devices, onlines } from './store';
 import { dev } from '$app/environment';
 
-export const status = writable({ connected: false, authenticated: false, error: false });
+export const status = writable({ connected: false, authenticated: false, error: false, loaded: false });
 export const getStatus = () => get(status);
 
 export const passwordStore = writable('');
@@ -19,7 +19,7 @@ passwordStore.subscribe((pass) => () => (password = pass));
 
 function reset() {
 	if (ws) ws.close();
-	status.set({ connected: false, authenticated: false, error: socketError });
+	status.set({ connected: false, authenticated: false, error: socketError, loaded: false });
 }
 
 function onError(_e: Event | CloseEvent) {
@@ -34,7 +34,7 @@ function connect() {
 		socketError = true;
 		onError(e);
 	};
-	ws.addEventListener('ping', () => console.log('gilipollas'));
+	ws.addEventListener('ping', () => console.log('xd'));
 	ws.onclose = onError;
 	ws.onopen = () => {
 		let auth = false;
@@ -75,6 +75,10 @@ function connect() {
 				break;
 
 			case 'update':
+				status.update((e) => {
+					e.loaded = true;
+					return e;
+				});
 				onlines.set(data.data);
 				break;
 
@@ -105,6 +109,13 @@ function wake(mac: string) {
 	});
 }
 
+function shutdown(key: string) {
+	return new Promise((resolve) => {
+		let nonce = sendEvent('shutdown', { key });
+		resolves[nonce] = resolve;
+	});
+}
+
 function save(devices: Device[]) {
 	return new Promise((resolve) => {
 		devices = Array.isArray(devices) ? devices : [];
@@ -129,4 +140,4 @@ function sendEvent(event: string, obj: object) {
 	return nonce;
 }
 
-export { wake, login, save };
+export { wake, login, save, shutdown };

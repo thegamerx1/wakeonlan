@@ -11,6 +11,7 @@ ping-rs = "0.1.2"
 pretty_env_logger = "0.5.0"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
+thiserror = "1.0.63"
 tokio = { version = "1.39.1", features = ["full"] }
 tokio-stream = "0.1.15"
 warp = "0.3.7"
