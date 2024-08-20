@@ -12,6 +12,7 @@ declare global {
 		name: string;
 		mac: string;
 		host: string;
+		api_key: string | null;
 	};
 }
 

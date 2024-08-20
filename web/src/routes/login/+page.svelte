@@ -30,13 +30,13 @@
 	}
 </script>
 
-<div class="flex justify-center items-center h-full">
+<div class="flex h-full items-center justify-center">
 	{#if $status.connected}
-		<div class="card w-full w-sm-500 place-self-start" transition:fly>
+		<div class="card w-sm-500 w-full place-self-start" transition:fly>
 			{#if failed}
 				<div class="alert alert-danger my-5" transition:fly>Wrong token</div>
 			{/if}
-			<h4 class="text-4xl font-bold pb-2 text-center">Login</h4>
+			<h4 class="pb-2 text-center text-4xl font-bold">Login</h4>
 			<form on:submit|preventDefault={submit}>
 				<label class="w-full">
 					Token
@@ -49,7 +49,7 @@
 					/>
 				</label>
 				<button
-					class="btn mt-5 btn-primary btn-block flex items-center justify-center"
+					class="btn btn-primary btn-block mt-5 flex items-center justify-center"
 					type="submit"
 					disabled={loggingin}
 				>
@@ -63,7 +63,7 @@
 		</div>
 	{:else if $status.error}
 		<div
-			class="alert my-5 font-size-16 alert-danger flex items-center"
+			class="alert font-size-16 alert-danger my-5 flex items-center"
 			transition:fade={{ duration: 500 }}
 		>
 			<Spinner />
