@@ -1,48 +1,82 @@
-use std::fs::File;
-use std::io::{BufReader, Write};
-use std::net::TcpListener;
-use std::sync::Arc;
+#[macro_use]
+extern crate log;
 
-use rustls::{Certificate, PrivateKey, ServerConfig};
-use rustls_pemfile::{certs, pkcs8_private_keys};
+use std::{env, io::Error, process::Command, time::Duration};
+
+use http::{HeaderValue, Request};
+use tungstenite::{client::IntoClientRequest, connect, Message};
+
+fn create_req(url: &str, api_key: &str) -> Request<()> {
+    let mut req = url.into_client_request().unwrap();
+    let headers = req.headers_mut();
+    headers.append("Authorization", HeaderValue::from_str(api_key).unwrap());
+
+    req
+}
 
 fn main() {
-    // Load the CA certificate
-    let mut ca_reader = BufReader::new(File::open("ca.crt").unwrap());
-    let ca_cert = rustls::Certificate(certs(&mut ca_reader).unwrap()[0].clone());
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info")
+    }
+    pretty_env_logger::init_timed();
 
-    // Load the server certificate and private key
-    let mut cert_reader = BufReader::new(File::open("server.crt").unwrap());
-    let mut key_reader = BufReader::new(File::open("server.key").unwrap());
+    let api_key = env::var("API_KEY").expect("Missing environment variable API_KEY");
+    let url = env::var("URL").expect("Missing environment variable URL");
 
-    let server_cert = certs(&mut cert_reader).unwrap();
-    let server_key = PrivateKey(pkcs8_private_keys(&mut key_reader).unwrap()[0].clone());
+    let req = create_req(&url, &api_key);
 
-    // Create the TLS configuration
-    let config = ServerConfig::builder_with_protocol_versions(&[&rustls::version::TLS13]).unwrap()
-
-    let tls_config = Arc::new(config);
-
-    // Create a TCP listener
-    let listener = TcpListener::bind("0.0.0.0:8443").unwrap();
-    println!("Server listening on port 8443");
-
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                let tls_config = Arc::clone(&tls_config);
-                std::thread::spawn(move || {
-                    let mut tls_stream = rustls::ServerConnection::new(tls_config).unwrap();
-                    let mut stream = rustls::Stream::new(&mut tls_stream, &mut stream);
-
-                    // Handle the connection
-                    let response = "Hello, TLS Client!";
-                    stream.write_all(response.as_bytes()).unwrap();
-                });
+    loop {
+        std::thread::sleep(Duration::from_secs(5));
+        info!("Trying to connect");
+        let (mut socket, _response) = match connect(req.clone()) {
+            Ok(soc) => soc,
+            Err(err) => {
+                warn!("Error connecting {err}");
+                continue;
             }
-            Err(e) => {
-                eprintln!("Error: {}", e);
+        };
+
+        info!("Connected to the server");
+
+        socket.send(Message::Text("hey".into())).unwrap();
+        loop {
+            let msg = match socket.read() {
+                Ok(msg) => msg,
+                Err(err) => {
+                    warn!("Error sending message {err}");
+                    break;
+                }
+            };
+            match msg {
+                Message::Text(msg) => {
+                    if msg == "suspend" {
+                        warn!("Received suspend");
+                        suspend();
+                    } else {
+                        warn!("Received unknown message {msg}");
+                    }
+                }
+                _ => {
+                    warn!("Received unknown message {msg}");
+                }
             }
         }
+        socket.close(None).ok();
     }
+    // socket.close(None);
 }
+
+fn suspend() -> Result<bool, Error> {
+    let command = if cfg!(windows) {
+        ("shutdown", vec!["/s", "/t", "0"])
+    } else {
+        ("systemctl", vec!["suspend"])
+    };
+
+    let output = Command::new(command.0).args(command.1).output()?;
+
+    Ok(output.status.success())
+}
+
+// #[cfg(not(windows))]
+// fn shutdown() {}
