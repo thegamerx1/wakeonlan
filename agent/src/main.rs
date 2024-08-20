@@ -56,6 +56,13 @@ fn main() {
                         warn!("Received unknown message {msg}");
                     }
                 }
+                Message::Pong(_p) => {
+                    debug!("Recived pong");
+                }
+                Message::Ping(p) => {
+                    debug!("Recived ping replying with pong");
+                    socket.send(Message::Pong(p)).ok();
+                }
                 _ => {
                     warn!("Received unknown message {msg}");
                 }
@@ -77,6 +84,3 @@ fn suspend() -> Result<bool, Error> {
 
     Ok(output.status.success())
 }
-
-// #[cfg(not(windows))]
-// fn shutdown() {}

@@ -1,10 +1,11 @@
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
+use futures_util::{SinkExt, StreamExt};
+use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
+use tokio::time::interval;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::filters::ws::{Message, WebSocket};
-
 
 pub struct AgentData {
     pub tx: mpsc::UnboundedSender<Message>,
@@ -22,12 +23,22 @@ pub async fn connected(agent_key: String, ws: WebSocket, agents: Agents) {
 
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
-            ws_tx
-                .send(message)
-                .unwrap_or_else(|e| {
-                    error!("websocket send error: {}", e);
-                })
-                .await;
+            if ws_tx.send(message).await.is_err() {
+                debug!("Exited receiver");
+                return;
+            };
+        }
+    });
+
+    let our_tx = tx.clone();
+    tokio::task::spawn(async move {
+        let mut interval = interval(Duration::from_secs(15));
+        loop {
+            interval.tick().await;
+            if our_tx.send(Message::ping([0])).is_err() {
+                debug!("Exited Pinger");
+                return;
+            };
         }
     });
 
@@ -40,11 +51,11 @@ pub async fn connected(agent_key: String, ws: WebSocket, agents: Agents) {
         drop(msg);
     }
 
-    disconnected(agent_key, &agents).await;
+    disconnected(&agent_key, &agents).await;
 }
 
-async fn disconnected(agent_key: String, agents: &Agents) {
+async fn disconnected(agent_key: &str, agents: &Agents) {
     info!("good bye agent: {}", agent_key);
 
-    agents.write().await.remove(&agent_key);
+    agents.write().await.remove(agent_key);
 }
