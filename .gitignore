@@ -3,7 +3,7 @@ node_modules
 .vscode
 server/dist
 data
-web/public
 target
+node-modules
 backend/public
-web/node-modules
+.envrc
