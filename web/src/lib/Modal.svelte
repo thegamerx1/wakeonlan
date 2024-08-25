@@ -8,7 +8,7 @@
 	import Spinner from './icons/spinner.svelte';
 	import { add } from './store';
 
-	const defaultDevice = { host: '', mac: '', name: '' };
+	const defaultDevice = { host: '', mac: '', name: '', api_key: null };
 	let data = { ...defaultDevice },
 		error = false,
 		submiting = false,
@@ -46,6 +46,7 @@
 <div
 	class="modal"
 	class:show={$showModal}
+	hidden={!$showModal}
 	role="dialog"
 	data-overlay-dismissal-disabled="true"
 	data-esc-dismissal-disabled="true"

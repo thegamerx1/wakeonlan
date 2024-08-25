@@ -92,6 +92,10 @@
 			{data.name}
 		</div>
 
+		{#if since > 15}
+			<span>({since}s)</span>
+		{/if}
+
 		<div
 			class="flex items-center hover:text-gray-400"
 			tabindex="0"
@@ -113,11 +117,7 @@
 		</div>
 	</div>
 	<div class="text-muted flex w-full justify-end">
-		{#if since > 15}
-			<span>({since}s)</span>
-		{/if}
-
-		<span class="{online?.connected ? 'text-success' : 'text-gray-400'} px-5">
+		<span class="{online?.connected ? 'text-success' : 'text-gray-400'} mr-auto">
 			{#if online?.connected}
 				Agent connected
 			{:else}

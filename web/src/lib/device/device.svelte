@@ -8,7 +8,7 @@
 	export let data: Device, index: number;
 </script>
 
-<div class="font-size-16 card w-300 d-flex flex-column m-10 px-20" transition:scale>
+<div class="font-size-16 card w-300 d-flex flex-column m-10" transition:scale>
 	{#if editing}
 		<DevEditing {index} {data} on:cancel={() => (editing = false)} />
 	{:else}
