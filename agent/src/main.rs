@@ -26,6 +26,7 @@ fn main() {
     let req = create_req(&url, &api_key);
 
     loop {
+        info!("Disconnected");
         std::thread::sleep(Duration::from_secs(5));
         info!("Trying to connect");
         let (mut socket, _response) = match connect(req.clone()) {
@@ -52,6 +53,8 @@ fn main() {
                     if msg == "suspend" {
                         warn!("Received suspend");
                         suspend();
+                        std::thread::sleep(Duration::from_secs(5));
+                        break;
                     } else {
                         warn!("Received unknown message {msg}");
                     }
