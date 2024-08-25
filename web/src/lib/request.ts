@@ -2,7 +2,12 @@ import { writable, get } from 'svelte/store';
 import { devices, onlines } from './store';
 import { dev } from '$app/environment';
 
-export const status = writable({ connected: false, authenticated: false, error: false, loaded: false });
+export const status = writable({
+	connected: false,
+	authenticated: false,
+	error: false,
+	loaded: false
+});
 export const getStatus = () => get(status);
 
 export const passwordStore = writable('');
@@ -109,9 +114,9 @@ function wake(mac: string) {
 	});
 }
 
-function shutdown(key: string) {
+function shutdown(host: string) {
 	return new Promise((resolve) => {
-		let nonce = sendEvent('shutdown', { key });
+		let nonce = sendEvent('shutdown', { host });
 		resolves[nonce] = resolve;
 	});
 }

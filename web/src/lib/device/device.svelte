@@ -8,10 +8,10 @@
 	export let data: Device, index: number;
 </script>
 
-<div class="card w-300 px-25 d-flex flex-column align-items-top m-10" transition:scale>
+<div class="font-size-16 card w-300 d-flex flex-column m-10 px-20" transition:scale>
 	{#if editing}
 		<DevEditing {index} {data} on:cancel={() => (editing = false)} />
 	{:else}
-		<DevNormal {index} {...data} on:edit={() => (editing = true)} />
+		<DevNormal {index} {data} on:edit={() => (editing = true)} />
 	{/if}
 </div>

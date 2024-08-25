@@ -49,85 +49,83 @@
 	}
 </script>
 
-<div class="font-size-18">
-	{#if error}
-		<div class="alert alert-danger" role="alert">Duplicate data found</div>
-	{/if}
-	<form on:submit|preventDefault={onSubmit} class="font-size-16">
-		<label class="w-full">
-			Name
+{#if error}
+	<div class="alert alert-danger" role="alert">Duplicate data found</div>
+{/if}
+<form on:submit|preventDefault={onSubmit} class="font-size-16">
+	<label class="w-full">
+		Name
+		<input
+			type="text"
+			use:focus
+			bind:value={newdata.name}
+			class="form-control"
+			on:change={(e) => change('name', e)}
+			disabled={submiting}
+			maxlength="18"
+		/>
+	</label>
+	<label class="w-full">
+		MAC Address
+		<input
+			type="text"
+			bind:value={newdata.mac}
+			class="form-control"
+			on:change={(e) => change('mac', e)}
+			disabled={submiting}
+			maxlength="17"
+		/>
+	</label>
+	<label class="w-full">
+		Host
+		<input
+			type="text"
+			bind:value={newdata.host}
+			class="form-control"
+			on:change={(e) => change('host', e)}
+			disabled={submiting}
+			maxlength="18"
+		/>
+	</label>
+	<label class="w-full">
+		API KEY
+		{#if newdata.api_key}
 			<input
 				type="text"
-				use:focus
-				bind:value={newdata.name}
+				value={newdata.api_key.substring(0, 5) + '-*****'.repeat(3)}
 				class="form-control"
-				on:change={(e) => change('name', e)}
-				disabled={submiting}
-				maxlength="18"
+				disabled={true}
+				maxlength="5"
 			/>
-		</label>
-		<label class="w-full">
-			MAC Address
-			<input
-				type="text"
-				bind:value={newdata.mac}
-				class="form-control"
-				on:change={(e) => change('mac', e)}
-				disabled={submiting}
-				maxlength="17"
-			/>
-		</label>
-		<label class="w-full">
-			Host
-			<input
-				type="text"
-				bind:value={newdata.host}
-				class="form-control"
-				on:change={(e) => change('host', e)}
-				disabled={submiting}
-				maxlength="18"
-			/>
-		</label>
-		<label class="w-full">
-			API KEY
+		{/if}
+		<div class="flex w-full flex-row">
+			<button class="btn flex-1" type="button" disabled={submiting} on:click={() => regenerate()}
+				>Regenerate</button
+			>
 			{#if newdata.api_key}
-				<input
-					type="text"
-					value={newdata.api_key.substring(0, 5) + '-*****'.repeat(3)}
-					class="form-control"
-					disabled={true}
-					maxlength="5"
-				/>
-			{/if}
-			<div class="flex w-full flex-row">
-				<button class="btn flex-1" type="button" disabled={submiting} on:click={() => regenerate()}
-					>Regenerate</button
+				<button class="btn flex-1" type="button" disabled={submiting} on:click={() => clipboard()}
+					>Copy</button
 				>
-				{#if newdata.api_key}
-					<button class="btn flex-1" type="button" disabled={submiting} on:click={() => clipboard()}
-						>Copy</button
-					>
-				{/if}
-			</div>
-		</label>
-		<div class="mt-20 flex text-right">
-			<button
-				class="btn mr-5 flex-1"
-				type="button"
-				disabled={submiting}
-				on:click={() => dispatch('cancel')}>Cancel</button
-			>
-			<button
-				class="btn btn-primary flex flex-1 items-center justify-center"
-				type="submit"
-				disabled={submiting}
-			>
-				{#await promise}
-					<Spinner />
-				{:then}
-					Done
-				{/await}
-			</button>
+			{/if}
 		</div>
-	</form>
-</div>
+	</label>
+	<div class="mt-20 flex text-right">
+		<button
+			class="btn mr-5 flex-1"
+			type="button"
+			disabled={submiting}
+			on:click={() => dispatch('cancel')}>Cancel</button
+		>
+		<button
+			class="btn btn-primary flex flex-1 items-center justify-center"
+			type="submit"
+			disabled={submiting}
+		>
+			{#await promise}
+				<Spinner />
+			{:then}
+				Done
+			{/await}
+		</button>
+	</div>
+</form>

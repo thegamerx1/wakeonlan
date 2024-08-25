@@ -46,12 +46,18 @@ pub enum WsRequest {
     #[serde(rename = "wake")]
     Wake { mac: String, nonce: i32 },
     #[serde(rename = "shutdown")]
-    Shutdown { key: String, nonce: i32 },
+    Shutdown { host: String, nonce: i32 },
     #[serde(rename = "save")]
     Save { devices: Vec<Device>, nonce: i32 },
 }
 
-pub type LatencyDevices = HashMap<String, Option<u32>>;
+#[derive(Serialize, Deserialize)]
+pub struct DeviceData {
+    latency: Option<u32>,
+    connected: bool,
+}
+
+pub type UpdateDevices = HashMap<String, DeviceData>;
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "event")]
@@ -69,7 +75,7 @@ pub enum WsResponse {
         nonce: i32,
     },
     #[serde(rename = "update")]
-    Update { data: LatencyDevices },
+    Update { data: UpdateDevices },
     #[serde(rename = "devices")]
     Devices { data: Vec<Device> },
     #[serde(rename = "error")]
@@ -210,12 +216,12 @@ pub async fn connected(ws: WebSocket, users: Users, devices: Devices, agents: Ag
                         success: false,
                     },
                 },
-                WsRequest::Shutdown { key, nonce } => {
+                WsRequest::Shutdown { host, nonce } => {
                     let agents = agents.read().await;
                     WsResponse::Shutdown {
-                        success: match agents.get(&key) {
+                        success: match agents.get(&host) {
                             Some(agent) => {
-                                warn!("Sending shutdown message to agent {}", &key);
+                                warn!("Sending shutdown message to agent {}", &host);
                                 match agent.tx.send(Message::text("suspend")) {
                                     Ok(()) => true,
                                     Err(err) => {
@@ -260,11 +266,11 @@ fn get_nonce(msg: WsRequest) -> i32 {
         WsRequest::Save { devices: _, nonce } => nonce,
         WsRequest::Wake { mac: _, nonce } => nonce,
         WsRequest::Login { login: _, nonce } => nonce,
-        WsRequest::Shutdown { key: _, nonce } => nonce,
+        WsRequest::Shutdown { host: _, nonce } => nonce,
     }
 }
 
-pub async fn ping_hosts(devices: &Arc<tokio::sync::RwLock<Vec<Device>>>) -> LatencyDevices {
+pub async fn ping_hosts(devices: &Devices, agents: &Agents) -> HashMap<String, DeviceData> {
     let mut result = HashMap::new();
     for device in devices.read().await.iter() {
         let ip = match IpAddr::from_str(device.host.as_str()) {
@@ -274,10 +280,24 @@ pub async fn ping_hosts(devices: &Arc<tokio::sync::RwLock<Vec<Device>>>) -> Late
                 continue;
             }
         };
-
         result.insert(device.host.to_owned(), ping_host(ip).await);
     }
+    let agents = &agents.read().await;
     result
+        .iter()
+        .map(|(k, v)| {
+            (
+                k.clone(),
+                DeviceData {
+                    latency: *v,
+                    connected: match agents.get(k) {
+                        Some(_) => true,
+                        None => false,
+                    },
+                },
+            )
+        })
+        .collect()
 }
 
 async fn send_event(user: &UserData, msg: WsResponse) {

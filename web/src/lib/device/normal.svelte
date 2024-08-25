@@ -3,28 +3,29 @@
 	import { onMount } from 'svelte';
 	import { slide, scale } from 'svelte/transition';
 	import { createEventDispatcher } from 'svelte';
-	import { remove, onlines } from '../store';
+	import { remove, onlines, type Online } from '../store';
 	import halfmoon from 'halfmoon';
 	import Wifioff from '$lib/icons/wifioff.svelte';
 	import Wifi from '$lib/icons/wifi.svelte';
 	import Spinner from '$lib/icons/spinner.svelte';
 	import Confirm from '$lib/Confirm.svelte';
+	import Edit from '$lib/icons/edit.svelte';
+	import Trash from '$lib/icons/trash.svelte';
 	const dispatch = createEventDispatcher();
 
-	export let mac: string, name: string, host: string, api_key: string, index: number;
+	export let data: Device, index: number;
 
-	const wakeTimeout = 2 * 60 * 1000;
 	const updateRate = 1000;
 
 	let waitingon: string | null,
 		since = 0,
-		online: number | null = 0,
+		online: Online | null = null,
 		lastUpdate = 0,
 		sinceTimer: number;
 
 	onlines.subscribe((onlines) => {
-		if (host in onlines) {
-			online = onlines[host];
+		if (data.host in onlines) {
+			online = onlines[data.host];
 			lastUpdate = performance.now();
 		}
 	});
@@ -45,7 +46,7 @@
 	function turnon() {
 		run(
 			'Waking',
-			wake(mac).then((data: any) => {
+			wake(data.mac).then((data: any) => {
 				if (!data.success) {
 					halfmoon.initStickyAlert({
 						content: `Failed to wake ${name}`,
@@ -68,7 +69,7 @@
 	function turnoff() {
 		run(
 			'Shutting down',
-			shutdown(api_key).then((data: any) => {
+			shutdown(data.host).then((data: any) => {
 				if (!data.success) {
 					halfmoon.initStickyAlert({
 						content: `Failed to shutdown ${name}`,
@@ -85,36 +86,50 @@
 	}
 </script>
 
-<div class="font-size-18 flex flex-wrap" in:scale={{ duration: 200 }}>
-	<div class="font-weight-bold mr-auto flex items-center px-5 uppercase">
-		<svg
-			on:click={edit}
-			on:keyup={edit}
+<div class="flex flex-col" in:scale={{ duration: 200 }}>
+	<div class="flex justify-end">
+		<div class="font-weight-bold mr-auto uppercase">
+			{data.name}
+		</div>
+
+		<div
+			class="flex items-center hover:text-gray-400"
 			tabindex="0"
 			role="button"
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class="hover mr-5"
-			><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path
-				d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-			/></svg
+			on:click={edit}
+			on:keyup={edit}
 		>
-		{name}
+			<Edit />
+		</div>
+		<div
+			class="flex items-center hover:text-red-400"
+			tabindex="0"
+			role="button"
+			on:click={delet}
+			on:keyup={delet}
+		>
+			<Trash />
+			<!-- <Confirm on:click={delet} classes="btn-secondary" text="Delete" /> -->
+		</div>
 	</div>
-	<div class="text-muted font-size-16 flex items-center justify-center">
+	<div class="text-muted flex w-full justify-end">
 		{#if since > 15}
 			<span>({since}s)</span>
 		{/if}
-		<span class={online == null ? 'text-danger' : 'text-success'}>
-			{#if online == null}
+
+		<span class="{online?.connected ? 'text-success' : 'text-gray-400'} px-5">
+			{#if online?.connected}
+				Agent connected
+			{:else}
+				Agent Disconnected
+			{/if}
+		</span>
+
+		<span class={online?.latency == null ? 'text-danger' : 'text-success'}>
+			{#if online?.latency == null}
 				Offline <Wifioff />
 			{:else}
-				{online.toFixed(0)}ms <Wifi />
+				{online.latency.toFixed(0)}ms <Wifi />
 			{/if}
 		</span>
 	</div>
@@ -123,14 +138,15 @@
 <div class="d-flex mt-15 buttonCont justify-content-end w-full" in:slide>
 	{#if waitingon}
 		<Spinner /> {waitingon}
-	{:else}
-		{#if online == null}
-			<Confirm on:click={turnon} classes="btn-secondary" text="Wake" />
-			<span class="p-5" />
-		{:else}
-			<Confirm on:click={turnoff} classes="btn-secondary" text="Shutdown" />
-		{/if}
-		<Confirm on:click={delet} classes="btn-secondary" text="Delete" />
+	{:else if online?.latency == null}
+		<Confirm on:click={turnon} classes="btn-secondary" text="Wake" />
+		<span class="p-5" />
+	{:else if online?.connected}
+		<Confirm
+			on:click={turnoff}
+			classes="btn-secondary {online?.connected ? 'btn-disabled' : ''}"
+			text="Shutdown"
+		/>
 	{/if}
 </div>
 

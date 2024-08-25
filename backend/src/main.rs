@@ -71,6 +71,7 @@ async fn main() {
     let agents2 = Arc::clone(&agents);
     let back_devices2 = Arc::clone(&devices);
     let back_users = Arc::clone(&users);
+    let back_agents = Arc::clone(&agents);
     let users_warp = warp::any().map(move || users.clone());
     let devices_warp = warp::any().map(move || back_devices2.clone());
     let agents_warp = warp::any().map(move || agents.clone());
@@ -94,7 +95,7 @@ async fn main() {
         .and_then(
             |authorization: Option<String>, devices: Arc<RwLock<Vec<Device>>>| async move {
                 if let Some(authorization) = authorization {
-                    let device = {
+                    let host = {
                         let devices_read = &devices.read().await;
                         devices_read
                             .iter()
@@ -103,10 +104,10 @@ async fn main() {
                                     .as_ref()
                                     .is_some_and(|key| key == &authorization)
                             })
-                            .and_then(|dev| dev.api_key.clone())
+                            .and_then(|dev| Some(dev.host.clone()))
                     };
-                    if let Some(device) = device {
-                        return Ok((device, devices));
+                    if let Some(agent_host) = host {
+                        return Ok((agent_host, devices));
                     }
                 }
                 Err(warp::reject::custom(ApiErrors::NotAuthorized(
@@ -117,9 +118,9 @@ async fn main() {
         .and(warp::ws())
         .and(agents_warp)
         .map(
-            |(agent_key, _devices_agent): (String, Devices), ws: warp::ws::Ws, agent_agents| {
+            |(agent_host, _devices_agent): (String, Devices), ws: warp::ws::Ws, agent_agents| {
                 // This will call our function if the handshake succeeds.
-                ws.on_upgrade(move |socket| agent::connected(agent_key, socket, agent_agents))
+                ws.on_upgrade(move |socket| agent::connected(agent_host, socket, agent_agents))
             },
         );
 
@@ -138,8 +139,8 @@ async fn main() {
             interval.tick().await;
             let user_count = &back_users.read().await.len();
             if *user_count > 0 {
-                let result = client::ping_hosts(&back_devices).await;
-                client::broadcast(client::WsResponse::Update { data: result }, &back_users).await;
+                let data = client::ping_hosts(&back_devices, &back_agents).await;
+                client::broadcast(client::WsResponse::Update { data }, &back_users).await;
             }
         }
     });

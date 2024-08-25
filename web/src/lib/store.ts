@@ -2,8 +2,13 @@ import { writable, get } from 'svelte/store';
 import { save } from './request';
 
 const devices = writable<Device[]>([]);
-interface Onlines {
-	[key: string]: number | null;
+export type Online = {
+	latency: number | null;
+	connected: boolean;
+};
+
+export interface Onlines {
+	[key: string]: Online;
 }
 
 const onlines = writable<Onlines>({});
