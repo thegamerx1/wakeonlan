@@ -8,6 +8,8 @@
 	import { page } from '$app/stores';
 	import AddModal from '$lib/Modal.svelte';
 	import { status } from '$lib/request';
+	import { fly } from 'svelte/transition';
+	import { showModal } from '$lib/Modal.svelte';
 
 	onMount(() => {
 		halfmoon.onDOMContentLoaded();
@@ -28,8 +30,9 @@
 <div class="page-wrapper with-navbar">
 	<div class="sticky-alerts" />
 	<nav class="navbar">
-		{#if $status.authenticated}
-			<button class="btn ml-auto" on:click={logout}>Logout</button>
+		{#if $status.loaded}
+			<button class="btn" on:click={() => showModal.set(true)} in:fly>Add device</button>
+			<button class="btn ml-auto" on:click={logout} in:fly>Logout</button>
 		{/if}
 	</nav>
 	<div class="content-wrapper">
