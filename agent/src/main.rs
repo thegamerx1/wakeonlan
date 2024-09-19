@@ -3,8 +3,14 @@ extern crate log;
 
 use std::{env, io::Error, process::Command, time::Duration};
 
+use async_tungstenite::tungstenite::Message;
+use async_tungstenite::{tokio::connect_async, tungstenite::client::IntoClientRequest};
+use futures_util::{SinkExt, StreamExt};
 use http::{HeaderValue, Request};
-use tungstenite::{client::IntoClientRequest, connect, Message};
+use tokio::time::timeout;
+
+const HEARTBEAT: Duration = Duration::from_secs(15);
+const TIMEOUT: Duration = Duration::from_secs(20);
 
 fn create_req(url: &str, api_key: &str) -> Request<()> {
     let mut req = url.into_client_request().unwrap();
@@ -14,7 +20,8 @@ fn create_req(url: &str, api_key: &str) -> Request<()> {
     req
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "info")
     }
@@ -29,7 +36,7 @@ fn main() {
         info!("Disconnected");
         std::thread::sleep(Duration::from_secs(5));
         info!("Trying to connect");
-        let (mut socket, _response) = match connect(req.clone()) {
+        let (ws_stream, _response) = match connect_async(req.clone()).await {
             Ok(soc) => soc,
             Err(err) => {
                 warn!("Error connecting {err}");
@@ -37,43 +44,50 @@ fn main() {
             }
         };
 
+        let (mut write, mut read) = ws_stream.split();
+
         info!("Connected to the server");
 
-        socket.send(Message::Text("hey".into())).unwrap();
+        match write.send(Message::Ping(vec![255,69,0,69])).await {
+            Ok(()) => (),
+            Err(err) => {
+                error!("Failed sending connect ping: {err}");
+                break;
+            }
+        };
+
         loop {
-            let msg = match socket.read() {
+            let msg = match timeout(TIMEOUT, read.next()).await {
                 Ok(msg) => msg,
-                Err(err) => {
-                    warn!("Error sending message {err}");
-                    break;
-                }
+                Err(_elapsed) => break,
             };
-            match msg {
-                Message::Text(msg) => {
-                    if msg == "suspend" {
-                        warn!("Received suspend");
-                        suspend();
-                        std::thread::sleep(Duration::from_secs(5));
-                        break;
-                    } else {
+
+            if let Some(Ok(msg)) = msg {
+                match msg {
+                    Message::Text(msg) => {
+                        if msg == "suspend" {
+                            warn!("Received suspend");
+                            suspend();
+                            std::thread::sleep(Duration::from_secs(5));
+                            break;
+                        } else {
+                            warn!("Received unknown message {msg}");
+                        }
+                    }
+                    Message::Pong(_p) => {
+                        debug!("Recived pong");
+                    }
+                    Message::Ping(p) => {
+                        debug!("Recived ping replying with pong");
+                        write.send(Message::Pong(p)).await.ok();
+                    }
+                    _ => {
                         warn!("Received unknown message {msg}");
                     }
                 }
-                Message::Pong(_p) => {
-                    debug!("Recived pong");
-                }
-                Message::Ping(p) => {
-                    debug!("Recived ping replying with pong");
-                    socket.send(Message::Pong(p)).ok();
-                }
-                _ => {
-                    warn!("Received unknown message {msg}");
-                }
             }
         }
-        socket.close(None).ok();
     }
-    // socket.close(None);
 }
 
 fn suspend() -> Result<bool, Error> {

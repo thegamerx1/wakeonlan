@@ -13,6 +13,10 @@ pub struct AgentData {
 
 pub type Agents = Arc<RwLock<HashMap<String, AgentData>>>;
 
+const HEARTBEAT: Duration = Duration::from_secs(15);
+const TIMEOUT: Duration = Duration::from_secs(20);
+
+
 pub async fn connected(agent_key: String, ws: WebSocket, agents: Agents) {
     info!("Agent connected: {}", &agent_key);
 
@@ -32,7 +36,7 @@ pub async fn connected(agent_key: String, ws: WebSocket, agents: Agents) {
 
     let our_tx = tx.clone();
     tokio::task::spawn(async move {
-        let mut interval = interval(Duration::from_secs(15));
+        let mut interval = interval(HEARTBEAT);
         loop {
             interval.tick().await;
             if our_tx.send(Message::ping([0])).is_err() {
