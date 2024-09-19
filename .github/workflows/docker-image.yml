@@ -1,0 +1,21 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "master" ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Build the Docker image for amd64
+      run: docker buildx build -t wakeonlan:latest-amd64 --platform linux/amd64 .
+    - name: Build the Docker image for arm64
+      run: docker buildx build -t wakeonlan:latest-arm64 --platform linux/arm64/v8 -f Dockerfile.arm .
+    
+    - name: Publish a Docker image
+      uses: macbre/push-to-ghcr@master
+      with:
+        image_name: ${{ github.repository }}  # it will be lowercased internally
+        github_token: ${{ secrets.GITHUB_TOKEN }}
