@@ -2,20 +2,78 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
+
+env:
+  GHCR_REPO: ghcr.io/thegamerx1/wakeonlan
+
 jobs:
-  build:
+  build-docker:
+    strategy:
+      matrix:
+        cpu: [arm64, amd64]
+        include:
+          - cpu: arm64
+            runner: ARM64
+            tag: arm64
+          - cpu: amd64
+            runner: X64
+            tag: amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-      
-    - name: Build the Docker image for amd64
-      run: docker buildx build -t wakeonlan:latest-amd64 --platform linux/amd64 .
-    - name: Build the Docker image for arm64
-      run: docker buildx build -t wakeonlan:latest-arm64 --platform linux/arm64/v8 -f Dockerfile.arm .
-    
-    - name: Publish a Docker image
-      uses: macbre/push-to-ghcr@master
-      with:
-        image_name: ${{ github.repository }}  # it will be lowercased internally
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # Automatically uses GitHub token for auth
+
+      - name: Build and Push Docker Image for arm
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.arm
+          provenance: false
+          platforms: linux/${{ matrix.cpu }}
+          push: true # Automatically push after build
+          tags: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
+
+  docker-manifest:
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.GHCR_REPO }}
+          flavor: ${{ inputs.flavor }}
+          tags: ${{ inputs.tags }}
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create and push manifests
+        run: |
+          tags='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
+          for tag in ${tags}
+          do
+            docker manifest rm ${tag} || true
+            docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64
+            docker manifest push ${tag}
+          done
+
+  # build-docker:
+  # runs-on: windows-latest
+
+  # - name: Build the Docker image for amd64
+  #   run: docker buildx build -t wakeonlan:latest-amd64 --platform linux/amd64 .
+  # - name: Build the Docker image for arm64
+  #   run: docker buildx build -t wakeonlan:latest-arm64 --platform linux/arm64/v8 -f Dockerfile.arm .
