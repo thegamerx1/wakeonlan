@@ -26,6 +26,7 @@ jobs:
       with:
         context: . # Use the current directory as the context
         file: Dockerfile.arm
+        platforms: linux/arm64
         push: true  # Automatically push after build
         tags: |
           ghcr.io/${{ github.repository }}:dev
@@ -36,14 +37,14 @@ jobs:
       with:
         context: . # Use the current directory as the context
         file: Dockerfile
+        platforms: linux/amd64
         push: true
         tags: |
           ghcr.io/${{ github.repository }}:dev
           ghcr.io/${{ github.repository }}:${{ github.ref_name == 'master' && 'latest' || github.ref_name }}
 
-      
+
    # - name: Build the Docker image for amd64
    #   run: docker buildx build -t wakeonlan:latest-amd64 --platform linux/amd64 .
    # - name: Build the Docker image for arm64
    #   run: docker buildx build -t wakeonlan:latest-arm64 --platform linux/arm64/v8 -f Dockerfile.arm .
-        
