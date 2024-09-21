@@ -35,8 +35,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: . # Use the current directory as the context
-        platforms: linux/arm64
-        file: Dockerfile.arm
+        file: Dockerfile
         push: true
         tags: |
           ghcr.io/${{ github.repository }}:dev
