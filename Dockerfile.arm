@@ -15,7 +15,7 @@ WORKDIR /app
 RUN rustup target add aarch64-unknown-linux-gnu
 RUN apt-get update && apt-get install gcc-aarch64-linux-gnu -y
 
-COPY ./backend/Cargo.lock ./backend/Cargo.toml .
+COPY ./Cargo.lock ./backend/Cargo.toml .
 COPY ./backend/src ./src
 
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc

@@ -13,7 +13,7 @@ RUN pnpm build
 FROM --platform=$BUILDPLATFORM rust:1.80 AS backend
 WORKDIR /app
 
-COPY ./backend/Cargo.lock ./backend/Cargo.toml .
+COPY ./Cargo.lock ./backend/Cargo.toml .
 COPY ./backend/src ./src
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/app/target cargo build --release && cp ./target/release/backend .
