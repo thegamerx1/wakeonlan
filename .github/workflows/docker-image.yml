@@ -69,6 +69,67 @@ jobs:
             docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64
             docker manifest push ${tag}
           done
+  build-agent:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]  # Define Linux and Windows OS
+        architecture: [amd64, arm64]  # Specify architectures for Linux only (not Windows)
+        exclude:
+          - os: windows-latest
+            architecture: arm64  # Exclude arm64 for Windows, as you want only amd64 for Windows
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        rustflags: ""
+        toolchain: "stable"
+
+    - name: Build
+      run: | 
+        cargo build --release -p agent
+
+    - name: Prep release
+      shell: bash
+      run: |
+        EXE_suffix=""
+        case ${{ matrix.os }} in 
+          *windows*) EXE_suffix=".exe" ;;
+        esac;
+
+        mkdir release
+        mv target/release/agent${EXE_suffix} release/agent-${{ matrix.os }}-${{ matrix.architecture }}${EXE_suffix}
+        ls release
+
+    - name: Check for release
+      id: is-release
+      shell: bash
+      run: |
+        echo "${GITHUB_REF#refs/*/}"
+        echo "${GITHUB_REF}"
+        unset IS_RELEASE ; if [[ $GITHUB_REF =~ ^refs/tags/v[0-9].* ]]; then IS_RELEASE='true' ; fi
+        echo "IS_RELEASE=${IS_RELEASE}" >> $GITHUB_OUTPUT
+
+
+    - name: Publish archives and packages
+      uses: softprops/action-gh-release@v2
+      if: steps.is-release.outputs.IS_RELEASE
+      with:
+        files: release/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+
+    # - name: Upload release binary as artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: agent-${{ matrix.os }}-${{ matrix.architecture }}
+    #     path: release/*
+    #     if-no-files-found: error
+
+
 
   # build-docker:
   # runs-on: windows-latest
