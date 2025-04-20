@@ -7,7 +7,7 @@ use async_tungstenite::tungstenite::Message;
 use async_tungstenite::{tokio::connect_async, tungstenite::client::IntoClientRequest};
 use futures_util::{SinkExt, StreamExt};
 use http::{HeaderValue, Request};
-use tokio::time::timeout;
+use tokio::{select, time::timeout};
 
 const HEARTBEAT: Duration = Duration::from_secs(15);
 const TIMEOUT: Duration = Duration::from_secs(20);
@@ -34,7 +34,7 @@ async fn main() {
 
     loop {
         info!("Disconnected");
-        std::thread::sleep(Duration::from_secs(5));
+        tokio::time::sleep(Duration::from_secs(5)).await;
         info!("Trying to connect");
         let (ws_stream, _response) = match connect_async(req.clone()).await {
             Ok(soc) => soc,
@@ -48,41 +48,61 @@ async fn main() {
 
         info!("Connected to the server");
 
-        match write.send(Message::Ping(vec![255,69,0,69])).await {
-            Ok(()) => (),
-            Err(err) => {
-                error!("Failed sending connect ping: {err}");
-                break;
-            }
-        };
+        let ping = Message::Ping(vec![255, 69, 0, 69]);
+        let mut heartbeat = tokio::time::interval(HEARTBEAT);
+        heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
         loop {
-            let msg = match timeout(TIMEOUT, read.next()).await {
-                Ok(msg) => msg,
-                Err(_elapsed) => break,
-            };
+            select! {
+                // Send heartbeat pings
+                _ = heartbeat.tick() => {
+                    if let Err(err) = write.send(ping.clone()).await {
+                        error!("Heartbeat failed: {err}");
+                        break;
+                    } else {
+                        debug!("Heartbeat sent");
+                    }
+                }
 
-            if let Some(Ok(msg)) = msg {
-                match msg {
-                    Message::Text(msg) => {
-                        if msg == "suspend" {
-                            warn!("Received suspend");
-                            suspend();
-                            std::thread::sleep(Duration::from_secs(5));
-                            break;
-                        } else {
-                            warn!("Received unknown message {msg}");
+                // Read messages with timeout
+                msg = timeout(TIMEOUT, read.next()) => {
+                    match msg {
+                        Ok(Some(Ok(msg))) => {
+                            match msg {
+                                Message::Text(msg) => {
+                                    if msg == "suspend" {
+                                        warn!("Received suspend");
+                                        suspend();
+                                        tokio::time::sleep(Duration::from_secs(5)).await;
+                                        break;
+                                    } else {
+                                        warn!("Received unknown message {msg}");
+                                    }
+                                }
+                                Message::Pong(_p) => {
+                                    debug!("Received pong");
+                                }
+                                Message::Ping(p) => {
+                                    debug!("Received ping, replying with pong");
+                                    write.send(Message::Pong(p)).await.ok();
+                                }
+                                _ => {
+                                    warn!("Received unknown message {msg}");
+                                }
+                            }
                         }
-                    }
-                    Message::Pong(_p) => {
-                        debug!("Recived pong");
-                    }
-                    Message::Ping(p) => {
-                        debug!("Recived ping replying with pong");
-                        write.send(Message::Pong(p)).await.ok();
-                    }
-                    _ => {
-                        warn!("Received unknown message {msg}");
+                        Ok(Some(Err(e))) => {
+                            warn!("Read error: {e}");
+                            break;
+                        }
+                        Ok(None) => {
+                            warn!("Server closed connection");
+                            break;
+                        }
+                        Err(_) => {
+                            warn!("Timed out waiting for message");
+                            break;
+                        }
                     }
                 }
             }
