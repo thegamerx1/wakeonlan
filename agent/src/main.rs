@@ -112,7 +112,10 @@ async fn main() {
 
 fn suspend() -> Result<bool, Error> {
     let command = if cfg!(windows) {
-        ("shutdown", vec!["/s", "/t", "0"])
+        (
+            "rundll32.exe",
+            vec!["powrprof.dll,SetSuspendState", "0", "1", "0"],
+        )
     } else {
         ("systemctl", vec!["suspend"])
     };

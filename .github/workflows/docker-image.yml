@@ -104,7 +104,7 @@ jobs:
           ls release
 
       - name: Publish archives and packages
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.2.1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           make_latest: true
