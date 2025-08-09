@@ -14,6 +14,7 @@ use std::convert::Infallible;
 use std::env;
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
+use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
@@ -48,6 +49,12 @@ async fn main() {
     if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "info")
     }
+
+    if std::env::var("APP_KEY").is_err() {
+        eprintln!("APP_KEY not set");
+        exit(1);
+    }
+
     pretty_env_logger::init_timed();
 
     _ = fs::create_dir("data/").await;
