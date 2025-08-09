@@ -9,6 +9,7 @@ use std::sync::{atomic::Ordering, Arc};
 use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use warp::http::StatusCode;
 use warp::ws::{Message, WebSocket};
 use wol::{send_wol, MacAddr};
 
@@ -80,6 +81,85 @@ pub enum WsResponse {
     Devices { data: Vec<Device> },
     #[serde(rename = "error")]
     Error { nonce: i32 },
+}
+
+pub async fn send_shutdown(agents: &Agents, host: &String) -> bool {
+    let agents = agents.read().await;
+    match agents.get(host) {
+        Some(agent) => {
+            warn!("Sending shutdown message to agent {}", &host);
+            match agent.tx.send(Message::text("suspend")) {
+                Ok(()) => true,
+                Err(err) => {
+                    error!("Could not send message to agent {err}");
+                    false
+                }
+            }
+        }
+        None => false,
+    }
+}
+
+#[derive(Deserialize)]
+enum APIAction {
+    #[serde(rename = "wake")]
+    Wake,
+    #[serde(rename = "sleep")]
+    Sleep,
+}
+
+#[derive(Deserialize)]
+pub struct InputData {
+    action: APIAction,
+    name: String,
+}
+
+pub async fn api_call(
+    data: InputData,
+    auth_header: Option<String>,
+    devices: Devices,
+    agents: Agents,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    match auth_header {
+        Some(auth) if auth == std::env::var("APP_KEY").unwrap() => {}
+        _ => {
+            return Ok(warp::reply::with_status(
+                "Unauthorized",
+                StatusCode::UNAUTHORIZED,
+            ))
+        }
+    };
+
+    let read = devices.read().await;
+
+    let device = match read.iter().find(|dev| dev.name == data.name) {
+        None => {
+            return Ok(warp::reply::with_status(
+                "Device not found",
+                StatusCode::NOT_FOUND,
+            ))
+        }
+        Some(dev) => dev,
+    };
+
+    let success = match data.action {
+        APIAction::Sleep => send_shutdown(&agents, &device.host).await,
+        APIAction::Wake => {
+            match send_wol(MacAddr::from_str(device.mac.as_str()).unwrap(), None, None) {
+                Err(_) => false,
+                Ok(_) => true,
+            }
+        }
+    };
+
+    return if success {
+        Ok(warp::reply::with_status("OK", StatusCode::OK))
+    } else {
+        Ok(warp::reply::with_status(
+            "Failed",
+            StatusCode::FAILED_DEPENDENCY,
+        ))
+    };
 }
 
 pub async fn connected(ws: WebSocket, users: Users, devices: Devices, agents: Agents) {
@@ -216,25 +296,10 @@ pub async fn connected(ws: WebSocket, users: Users, devices: Devices, agents: Ag
                         success: false,
                     },
                 },
-                WsRequest::Shutdown { host, nonce } => {
-                    let agents = agents.read().await;
-                    WsResponse::Shutdown {
-                        success: match agents.get(&host) {
-                            Some(agent) => {
-                                warn!("Sending shutdown message to agent {}", &host);
-                                match agent.tx.send(Message::text("suspend")) {
-                                    Ok(()) => true,
-                                    Err(err) => {
-                                        error!("Could not send message to agent {err}");
-                                        false
-                                    }
-                                }
-                            }
-                            None => false,
-                        },
-                        nonce: nonce,
-                    }
-                }
+                WsRequest::Shutdown { host, nonce } => WsResponse::Shutdown {
+                    success: send_shutdown(&agents, &host).await,
+                    nonce: nonce,
+                },
                 _ => WsResponse::Error {
                     nonce: get_nonce(req),
                 },

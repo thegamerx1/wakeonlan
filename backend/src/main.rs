@@ -21,6 +21,8 @@ use tokio::sync::RwLock;
 use warp::http::StatusCode;
 use warp::Filter;
 
+use crate::client::api_call;
+
 static DEVICES_PATH: &'static str = "data/devices.json";
 
 #[derive(Error, Debug)]
@@ -70,6 +72,8 @@ async fn main() {
     let back_devices = Arc::clone(&devices);
     let agents2 = Arc::clone(&agents);
     let back_devices2 = Arc::clone(&devices);
+    let api_devices = Arc::clone(&devices);
+    let api_agents = Arc::clone(&agents);
     let back_users = Arc::clone(&users);
     let back_agents = Arc::clone(&agents);
     let users_warp = warp::any().map(move || users.clone());
@@ -77,6 +81,16 @@ async fn main() {
     let agents_warp = warp::any().map(move || agents.clone());
     let agents_warp2 = warp::any().map(move || agents2.clone());
     let devices_agent = warp::any().map(move || devices.clone());
+    let api_devices_warp = warp::any().map(move || api_devices.clone());
+    let api_agents_warp = warp::any().map(move || api_agents.clone());
+
+    let api = warp::path("api")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(warp::header::optional::<String>("Authorization"))
+        .and(api_devices_warp)
+        .and(api_agents_warp)
+        .and_then(api_call);
 
     // GET /ws -> websocket upgrade
     let gateway = warp::path("ws")
@@ -129,7 +143,7 @@ async fn main() {
         .and(warp::fs::file("public/index.html"))
         .or(warp::get().and(warp::fs::dir("public/")));
     let routes = health_check
-        .or(gateway.or(agent_gateway.or(public)))
+        .or(api.or(gateway.or(agent_gateway.or(public))))
         .recover(handle_rejection);
 
     let background_task = task::spawn(async move {
