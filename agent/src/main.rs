@@ -29,6 +29,7 @@ async fn main() {
 
     let api_key = env::var("API_KEY").expect("Missing environment variable API_KEY");
     let url = env::var("URL").expect("Missing environment variable URL");
+    let should_shutdown = env::var("SHUTDOWN").unwrap_or_else(|_| "false".to_string()) == "true";
 
     let req = create_req(&url, &api_key);
 
@@ -72,7 +73,22 @@ async fn main() {
                                 Message::Text(msg) => {
                                     if msg == "suspend" {
                                         warn!("Received suspend");
-                                        suspend();
+                                        match if should_shutdown {
+                                            shutdown()
+                                        }  else {
+                                            suspend()
+                                        } {
+                                            Ok(success) => {
+                                                if success {
+                                                    info!("System going to suspend/shutdown");
+                                                } else {
+                                                    warn!("Suspend/shutdown command failed");
+                                                }
+                                            }
+                                            Err(e) => {
+                                                error!("Error executing suspend/shutdown command: {e}");
+                                            }
+                                        }
                                         tokio::time::sleep(Duration::from_secs(5)).await;
                                         break;
                                     } else {
@@ -118,6 +134,18 @@ fn suspend() -> Result<bool, Error> {
         )
     } else {
         ("systemctl", vec!["suspend"])
+    };
+
+    let output = Command::new(command.0).args(command.1).output()?;
+
+    Ok(output.status.success())
+}
+
+fn shutdown() -> Result<bool, Error> {
+    let command = if cfg!(windows) {
+        ("shutdown.exe", vec!["/s", "/t", "0"])
+    } else {
+        ("systemctl", vec!["shutdown"])
     };
 
     let output = Command::new(command.0).args(command.1).output()?;
