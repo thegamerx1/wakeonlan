@@ -20,6 +20,16 @@ fn create_req(url: &str, api_key: &str) -> Request<()> {
     req
 }
 
+fn get_env(name: &str) -> String {
+    match env::var(name) {
+        Ok(value) => value,
+        Err(_) => {
+            eprintln!("Missing environment variable: {name}\n");
+            std::process::exit(1);
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     if env::var("RUST_LOG").is_err() {
@@ -27,9 +37,10 @@ async fn main() {
     }
     pretty_env_logger::init_timed();
 
-    let api_key = env::var("API_KEY").expect("Missing environment variable API_KEY");
-    let url = env::var("URL").expect("Missing environment variable URL");
-    let should_shutdown = env::var("SHUTDOWN").unwrap_or_else(|_| "false".to_string()) == "true";
+    let api_key = get_env("API_KEY");
+    let url = get_env("URL");
+    let should_shutdown = env::var("SHUTDOWN")
+        .unwrap_or_else(|_| "false".to_string()) == "true";
 
     let req = create_req(&url, &api_key);
 
