@@ -156,7 +156,7 @@ fn shutdown() -> Result<bool, Error> {
     let command = if cfg!(windows) {
         ("shutdown.exe", vec!["/s", "/t", "0"])
     } else {
-        ("systemctl", vec!["shutdown"])
+        ("systemctl", vec!["poweroff"])
     };
 
     let output = Command::new(command.0).args(command.1).output()?;
