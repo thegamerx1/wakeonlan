@@ -36,7 +36,7 @@ pub async fn connected(agent_key: String, ws: WebSocket, agents: Agents) {
         let mut interval = interval(HEARTBEAT);
         loop {
             interval.tick().await;
-            if our_tx.send(Message::ping([0])).is_err() {
+            if our_tx.send(Message::ping(vec![0])).is_err() {
                 debug!("Exited Pinger");
                 return;
             };

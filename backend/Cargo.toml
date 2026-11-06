@@ -2,18 +2,20 @@
 name = "backend"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.85"
 
 [dependencies]
-futures-util = "0.3.31"
+futures-util = "0.3.34"
 log = "0.4.22"
-ping-rs = "0.1.2"
+native-tls = "0.2.18"
 pretty_env_logger = "0.5.0"
-rand = "0.8.5"
-rumqttc = { version = "0.24.0", default-features = false, features = ["use-rustls"] }
+rand = "0.8.6"
+rumqttc = { version = "0.25.1", default-features = false, features = ["use-native-tls"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 thiserror = "1.0.63"
-tokio = { version = "1.39.1", features = ["full"] }
+surge-ping = "0.9.1"
+tokio = { version = "1.54.1", features = ["full"] }
 tokio-stream = "0.1.15"
-warp = "0.3.7"
+warp = { version = "0.4.3", features = ["server", "websocket"] }
 wol-rs = "1.0.1"

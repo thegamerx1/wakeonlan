@@ -1,12 +1,12 @@
 use futures_util::{SinkExt, StreamExt};
-use ping_rs::{send_ping_async, PingOptions};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::str::FromStr;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicU16, AtomicUsize};
 use std::sync::{atomic::Ordering, Arc};
 use std::time::Duration;
+use surge_ping::{Client as PingClient, Config as PingConfig, PingIdentifier, PingSequence, ICMP};
 use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::http::StatusCode;
@@ -145,10 +145,7 @@ pub async fn api_call(
     let success = match data.action {
         APIAction::Sleep => send_shutdown(&agents, &device.host).await,
         APIAction::Wake => {
-            match send_wol(MacAddr::from_str(device.mac.as_str()).unwrap(), None, None) {
-                Err(_) => false,
-                Ok(_) => true,
-            }
+            MacAddr::from_str(&device.mac).is_ok_and(|address| send_wol(address, None, None).is_ok())
         }
     };
 
@@ -313,15 +310,27 @@ pub async fn connected(ws: WebSocket, users: Users, devices: Devices, agents: Ag
     disconnected(my_id, &users).await;
 }
 
-const PING_OPTS: PingOptions = PingOptions {
-    ttl: 128,
-    dont_fragment: true,
-};
 const DURATION: Duration = Duration::from_secs(1);
 const BUFFER: &[u8; 8] = &[8; 8];
-async fn ping_host(host: IpAddr) -> Option<u32> {
-    match send_ping_async(&host, DURATION, Arc::new(BUFFER), Some(&PING_OPTS)).await {
-        Ok(result) => Some(result.rtt),
+static NEXT_PING_ID: AtomicU16 = AtomicU16::new(0);
+
+fn ping_client(kind: ICMP) -> Option<PingClient> {
+    let config = PingConfig::builder().kind(kind).ttl(128).build();
+    match PingClient::new(&config) {
+        Ok(client) => Some(client),
+        Err(err) => {
+            debug!("Cannot create {:?} ping socket: {}", kind, err);
+            None
+        }
+    }
+}
+
+async fn ping_host(client: &PingClient, host: IpAddr) -> Option<u32> {
+    let id = NEXT_PING_ID.fetch_add(1, Ordering::Relaxed);
+    let mut pinger = client.pinger(host, PingIdentifier(id)).await;
+    pinger.timeout(DURATION);
+    match pinger.ping(PingSequence(id), BUFFER).await {
+        Ok((_, elapsed)) => Some(elapsed.as_millis().min(u32::MAX as u128) as u32),
         Err(err) => {
             debug!("ICMP ping failed for {}: {:?}", host, err);
             None
@@ -340,16 +349,34 @@ fn get_nonce(msg: WsRequest) -> i32 {
 
 pub async fn ping_hosts(devices: &[Device], agents: &Agents) -> UpdateDevices {
     // Bound concurrent probes and do not hold the registry lock during network I/O.
-    let hosts: Vec<_> = devices.iter().map(|device| device.host.clone()).collect();
-    let result: Vec<_> = futures_util::stream::iter(hosts.into_iter().map(|host| async move {
-        let latency = match IpAddr::from_str(&host) {
-            Ok(ip) => ping_host(ip).await,
-            Err(err) => {
-                debug!("Cannot ping invalid device host {:?}: {}", host, err);
-                None
-            }
+    let hosts: Vec<_> = devices
+        .iter()
+        .map(|device| (device.host.clone(), IpAddr::from_str(&device.host).ok()))
+        .collect();
+    // Reuse one socket per address family for all probes in this monitoring round.
+    let ipv4 = hosts
+        .iter()
+        .any(|(_, ip)| matches!(ip, Some(IpAddr::V4(_))))
+        .then(|| ping_client(ICMP::V4))
+        .flatten();
+    let ipv6 = hosts
+        .iter()
+        .any(|(_, ip)| matches!(ip, Some(IpAddr::V6(_))))
+        .then(|| ping_client(ICMP::V6))
+        .flatten();
+    let result: Vec<_> = futures_util::stream::iter(hosts.into_iter().map(|(host, ip)| {
+        let client = match ip {
+            Some(IpAddr::V4(_)) => ipv4.clone(),
+            Some(IpAddr::V6(_)) => ipv6.clone(),
+            None => None,
         };
-        (host, latency)
+        async move {
+            let latency = match (ip, client) {
+                (Some(ip), Some(client)) => ping_host(&client, ip).await,
+                _ => None,
+            };
+            (host, latency)
+        }
     }))
     .buffer_unordered(16)
     .collect()
@@ -388,4 +415,21 @@ async fn disconnected(my_id: usize, users: &Users) {
     info!("good bye user: {}", my_id);
 
     users.write().await.remove(&my_id);
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn shared_icmp_socket_handles_concurrent_loopback_probes() {
+        let client = ping_client(ICMP::V4).expect("Create ICMP socket");
+        let host = IpAddr::from_str("127.0.0.1").unwrap();
+        let (first, second) = tokio::join!(ping_host(&client, host), ping_host(&client, host));
+        assert!(first.is_some(), "First loopback echo must receive a reply");
+        assert!(
+            second.is_some(),
+            "Second loopback echo must receive a reply"
+        );
+    }
 }

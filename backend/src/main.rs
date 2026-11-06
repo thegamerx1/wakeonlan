@@ -212,11 +212,13 @@ async fn main() {
         stop_tx.send_replace(true);
     });
     let mut server_stop = stop_rx.clone();
-    let (_, server) =
-        warp::serve(routes).bind_with_graceful_shutdown(SocketAddr::new(host, port), async move {
+    let server = warp::serve(routes)
+        .bind(SocketAddr::new(host, port))
+        .await
+        .graceful(async move {
             let _ = server_stop.changed().await;
         });
-    let server_task = task::spawn(server);
+    let server_task = task::spawn(server.run());
     let _ = background_task.await;
     if let Some(mqtt_task) = mqtt_task {
         let _ = mqtt_task.await;

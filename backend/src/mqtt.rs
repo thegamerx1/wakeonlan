@@ -4,7 +4,7 @@ use crate::client::{send_shutdown, Device, Devices, UpdateDevices};
 use rand::Rng;
 use rumqttc::{
     AsyncClient, Event, EventLoop, LastWill, MqttOptions, Outgoing, Packet, QoS, SubscribeFilter,
-    SubscribeReasonCode, Transport,
+    SubscribeReasonCode, TlsConfiguration, Transport,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -58,6 +58,23 @@ fn topic(value: String, name: &str) -> Result<String> {
         return Err(format!("{name} must be a nonempty MQTT topic without wildcards").into());
     }
     Ok(value)
+}
+
+fn tls_connector(ca_bundle: Option<&[u8]>) -> Result<native_tls::TlsConnector> {
+    let mut builder = native_tls::TlsConnector::builder();
+    builder.min_protocol_version(Some(native_tls::Protocol::Tlsv12));
+    if let Some(pem) = ca_bundle {
+        let certificates = native_tls::Certificate::stack_from_pem(pem)?;
+        if certificates.is_empty() {
+            return Err("MQTT_CA_FILE must contain at least one valid PEM certificate".into());
+        }
+        // A supplied CA bundle is authoritative, matching the previous MQTT TLS behavior.
+        builder.disable_built_in_roots(true);
+        for certificate in certificates {
+            builder.add_root_certificate(certificate);
+        }
+    }
+    Ok(builder.build()?)
 }
 
 impl Config {
@@ -140,9 +157,14 @@ impl Config {
             if !tls {
                 return Err("MQTT_CA_FILE requires MQTT_TLS=true".into());
             }
-            options.set_transport(Transport::tls(tokio::fs::read(ca_path).await?, None, None));
+            let ca_bundle = tokio::fs::read(ca_path).await?;
+            options.set_transport(Transport::tls_with_config(
+                TlsConfiguration::NativeConnector(tls_connector(Some(&ca_bundle))?),
+            ));
         } else if tls {
-            options.set_transport(Transport::tls_with_default_config());
+            options.set_transport(Transport::tls_with_config(
+                TlsConfiguration::NativeConnector(tls_connector(None)?),
+            ));
         }
         Ok(Some(Self {
             options,
@@ -821,7 +843,7 @@ pub async fn run(
         // Clean sessions + authoritative snapshots: never replay stale queued publications.
         connection.events.clean();
         connection.events.pending.clear();
-        connection.events.state = rumqttc::MqttState::new(1, false, 64 * 1024);
+        connection.events.state = rumqttc::MqttState::new(1, false);
         tokio::select! { biased; _ = stop.changed() => break, _ = sleep(delay) => {} }
     }
     drop(tx);

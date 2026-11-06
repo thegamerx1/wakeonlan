@@ -2,15 +2,16 @@
 name = "agent"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.85"
 
 [dependencies]
 async-tungstenite = { version = "0.28.0", features = [
 	"tokio",
 	"tokio-native-tls",
 ] }
-futures-util = "0.3.30"
+futures-util = "0.3.34"
 http = "1.1.0"
 log = "0.4.22"
 pretty_env_logger = "0.5.0"
-tokio = { version = "1.40.0", features = ["full"] }
+tokio = { version = "1.54.1", features = ["full"] }
 #tungstenite = { version = "0.23.0", features = ["native-tls"] }

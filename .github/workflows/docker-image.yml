@@ -15,12 +15,14 @@ jobs:
         cpu: [arm64, amd64]
         include:
           - cpu: arm64
-            runner: ARM64
+            runner: ubuntu-24.04-arm
             tag: arm64
+            dockerfile: Dockerfile.arm
           - cpu: amd64
-            runner: X64
+            runner: ubuntu-latest
             tag: amd64
-    runs-on: ubuntu-latest
+            dockerfile: Dockerfile
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
@@ -33,11 +35,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }} # Automatically uses GitHub token for auth
 
-      - name: Build and Push Docker Image for arm
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.arm
+          file: ${{ matrix.dockerfile }}
           provenance: false
           platforms: linux/${{ matrix.cpu }}
           push: true # Automatically push after build
@@ -71,14 +73,19 @@ jobs:
             docker manifest push ${tag}
           done
   build-agent:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest] # Define Linux and Windows OS
-        architecture: [amd64, arm64] # Specify architectures for Linux only (not Windows)
-        exclude:
+        include:
+          - os: ubuntu-latest
+            architecture: amd64
+            runner: ubuntu-latest
+          - os: ubuntu-latest
+            architecture: arm64
+            runner: ubuntu-24.04-arm
           - os: windows-latest
-            architecture: arm64 # Exclude arm64 for Windows, as you want only amd64 for Windows
+            architecture: amd64
+            runner: windows-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v3
