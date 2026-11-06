@@ -4,7 +4,7 @@ RUN mkdir -p /app/
 WORKDIR /app
 
 COPY web/package*.json ./
-COPY web/pnpm-lock.yaml ./
+COPY web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY web/. .
 RUN pnpm build
