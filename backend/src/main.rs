@@ -1,11 +1,9 @@
-extern crate dotenv;
 extern crate serde;
 #[macro_use]
 extern crate log;
 
 use agent::Agents;
 use client::{Device, Devices, Users};
-use dotenv::dotenv;
 use serde::Serialize;
 use tokio::time::interval;
 use tokio::{fs, task};
@@ -46,7 +44,6 @@ mod mqtt;
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
     if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "info")
     }
