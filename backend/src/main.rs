@@ -8,7 +8,7 @@ use client::{Device, Devices, Users};
 use dotenv::dotenv;
 use serde::Serialize;
 use tokio::time::interval;
-use tokio::{fs, join, task};
+use tokio::{fs, task};
 
 use std::convert::Infallible;
 use std::env;
@@ -18,7 +18,7 @@ use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
-use tokio::sync::RwLock;
+use tokio::sync::{watch, RwLock};
 use warp::http::StatusCode;
 use warp::Filter;
 
@@ -42,6 +42,7 @@ impl warp::reject::Reject for ApiErrors {}
 
 mod agent;
 mod client;
+mod mqtt;
 
 #[tokio::main]
 async fn main() {
@@ -76,6 +77,22 @@ async fn main() {
 
     let users = Users::default();
     let agents = Agents::default();
+    let mqtt_config = mqtt::Config::from_env().await.unwrap_or_else(|err| {
+        error!("Invalid MQTT configuration: {err}");
+        exit(1);
+    });
+    let mqtt_enabled = mqtt_config.is_some();
+    let (stop_tx, stop_rx) = watch::channel(false);
+    let (snapshots_tx, snapshots_rx) = watch::channel(None);
+    let mqtt_task = mqtt_config.map(|config| {
+        task::spawn(mqtt::run(
+            config,
+            snapshots_rx,
+            devices.clone(),
+            agents.clone(),
+            stop_rx.clone(),
+        ))
+    });
     let back_devices = Arc::clone(&devices);
     let agents2 = Arc::clone(&agents);
     let back_devices2 = Arc::clone(&devices);
@@ -153,14 +170,31 @@ async fn main() {
         .or(api.or(gateway.or(agent_gateway.or(public))))
         .recover(handle_rejection);
 
+    let mut monitor_stop = stop_rx.clone();
     let background_task = task::spawn(async move {
         let mut interval = interval(Duration::from_secs(1));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
         loop {
-            interval.tick().await;
-            let user_count = &back_users.read().await.len();
-            if *user_count > 0 {
-                let data = client::ping_hosts(&back_devices, &back_agents).await;
+            tokio::select! {
+                biased;
+                _ = monitor_stop.changed() => break,
+                _ = interval.tick() => {}
+            }
+            let user_count = back_users.read().await.len();
+            if user_count > 0 || mqtt_enabled {
+                let device_list = back_devices.read().await.clone();
+                let data = tokio::select! {
+                    biased;
+                    _ = monitor_stop.changed() => break,
+                    data = client::ping_hosts(&device_list, &back_agents) => data,
+                };
+                if mqtt_enabled {
+                    snapshots_tx.send_replace(Some(mqtt::Snapshot {
+                        devices: device_list,
+                        states: data.clone(),
+                    }));
+                }
                 client::broadcast(client::WsResponse::Update { data }, &back_users).await;
             }
         }
@@ -175,10 +209,38 @@ async fn main() {
         .parse::<IpAddr>()
         .unwrap();
 
-    _ = join!(
-        warp::serve(routes).run(SocketAddr::new(host, port)),
-        background_task
-    );
+    let signal_task = task::spawn(async move {
+        shutdown_signal().await;
+        info!("Shutdown requested");
+        stop_tx.send_replace(true);
+    });
+    let mut server_stop = stop_rx.clone();
+    let (_, server) =
+        warp::serve(routes).bind_with_graceful_shutdown(SocketAddr::new(host, port), async move {
+            let _ = server_stop.changed().await;
+        });
+    let server_task = task::spawn(server);
+    let _ = background_task.await;
+    if let Some(mqtt_task) = mqtt_task {
+        let _ = mqtt_task.await;
+    }
+    // WebSocket clients can stay open indefinitely; bound HTTP draining after MQTT stops.
+    let _ = tokio::time::timeout(Duration::from_secs(2), server_task).await;
+    let _ = signal_task.await;
+}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("Install SIGTERM handler");
+        tokio::select! { _ = tokio::signal::ctrl_c() => {}, _ = terminate.recv() => {} }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
 }
 
 async fn handle_rejection(

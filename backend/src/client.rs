@@ -1,4 +1,4 @@
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
+use futures_util::{SinkExt, StreamExt};
 use ping_rs::{send_ping_async, PingOptions};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -52,10 +52,10 @@ pub enum WsRequest {
     Save { devices: Vec<Device>, nonce: i32 },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DeviceData {
-    latency: Option<u32>,
-    connected: bool,
+    pub latency: Option<u32>,
+    pub connected: bool,
 }
 
 pub type UpdateDevices = HashMap<String, DeviceData>;
@@ -175,13 +175,13 @@ pub async fn connected(ws: WebSocket, users: Users, devices: Devices, agents: Ag
 
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
-            ws_tx
-                .send(message)
-                .unwrap_or_else(|e| {
-                    error!("websocket send error: {}", e);
-                })
-                .await;
+            if let Err(e) = ws_tx.send(message).await {
+                error!("websocket send error: {}", e);
+                break;
+            }
         }
+        // Removing the user's sender ends this loop; flush the close handshake.
+        let _ = ws_tx.close().await;
     });
 
     // Save the sender in our list of connected users.
@@ -207,14 +207,14 @@ pub async fn connected(ws: WebSocket, users: Users, devices: Devices, agents: Ag
                 break;
             }
         };
-        let req: WsRequest = match serde_json::from_str(match msg.to_str() {
-            Err(_) => {
-                debug!("{:?}", msg);
-                error!("Error converting message to str");
-                continue;
-            }
-            Ok(msg) => msg,
-        }) {
+        if msg.is_close() {
+            break;
+        }
+        // Warp replies to Ping frames automatically. Only text frames contain requests.
+        let Ok(text) = msg.to_str() else {
+            continue;
+        };
+        let req: WsRequest = match serde_json::from_str(text) {
             Err(err) => {
                 debug!("{:?}", msg);
                 error!("{:?}", err);
@@ -322,7 +322,10 @@ const BUFFER: &[u8; 8] = &[8; 8];
 async fn ping_host(host: IpAddr) -> Option<u32> {
     match send_ping_async(&host, DURATION, Arc::new(BUFFER), Some(&PING_OPTS)).await {
         Ok(result) => Some(result.rtt),
-        Err(_err) => None,
+        Err(err) => {
+            debug!("ICMP ping failed for {}: {:?}", host, err);
+            None
+        }
     }
 }
 
@@ -335,32 +338,28 @@ fn get_nonce(msg: WsRequest) -> i32 {
     }
 }
 
-pub async fn ping_hosts(devices: &Devices, agents: &Agents) -> HashMap<String, DeviceData> {
-    let mut result = HashMap::new();
-    for device in devices.read().await.iter() {
-        let ip = match IpAddr::from_str(device.host.as_str()) {
-            Ok(ip) => ip,
-            Err(_) => {
-                result.insert(device.host.to_owned(), None);
-                continue;
+pub async fn ping_hosts(devices: &[Device], agents: &Agents) -> UpdateDevices {
+    // Bound concurrent probes and do not hold the registry lock during network I/O.
+    let hosts: Vec<_> = devices.iter().map(|device| device.host.clone()).collect();
+    let result: Vec<_> = futures_util::stream::iter(hosts.into_iter().map(|host| async move {
+        let latency = match IpAddr::from_str(&host) {
+            Ok(ip) => ping_host(ip).await,
+            Err(err) => {
+                debug!("Cannot ping invalid device host {:?}: {}", host, err);
+                None
             }
         };
-        result.insert(device.host.to_owned(), ping_host(ip).await);
-    }
-    let agents = &agents.read().await;
+        (host, latency)
+    }))
+    .buffer_unordered(16)
+    .collect()
+    .await;
+    let agents = agents.read().await;
     result
-        .iter()
-        .map(|(k, v)| {
-            (
-                k.clone(),
-                DeviceData {
-                    latency: *v,
-                    connected: match agents.get(k) {
-                        Some(_) => true,
-                        None => false,
-                    },
-                },
-            )
+        .into_iter()
+        .map(|(host, latency)| {
+            let connected = agents.contains_key(&host);
+            (host, DeviceData { latency, connected })
         })
         .collect()
 }

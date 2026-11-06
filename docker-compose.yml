@@ -8,6 +8,12 @@ services:
       environment:
          - APP_KEY=secret
          - APP_PORT=2938
+         # Optional MQTT connection settings from .env.
+         - MQTT_HOST
+         - MQTT_PORT
+         - MQTT_USERNAME
+         - MQTT_PASSWORD
+         - MQTT_TLS
       volumes:
          - data:/app/data
       network_mode: host

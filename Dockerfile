@@ -10,7 +10,7 @@ COPY web/. .
 RUN pnpm build
 
 
-FROM --platform=$BUILDPLATFORM rust:1.80 AS backend
+FROM --platform=$BUILDPLATFORM rust:1.85 AS backend
 WORKDIR /app
 
 COPY ./Cargo.lock ./backend/Cargo.toml .
@@ -20,6 +20,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,targe
 
 FROM debian:bookworm-slim
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY --from=frontend /app/build /app/public
 COPY --from=backend /app/backend /app/
