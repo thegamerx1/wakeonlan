@@ -1,9 +1,9 @@
 <script>
-	import { status } from '$lib/request';
-	import { devices } from '$lib/store';
+	import { status } from '#lib/request.ts';
+	import { devices } from '#lib/store.ts';
 	import { goto } from '$app/navigation';
-	import Device from '$lib/device/device.svelte';
-	import Spinner from '$lib/icons/spinner.svelte';
+	import Device from '#lib/device/device.svelte';
+	import Spinner from '#lib/icons/spinner.svelte';
 
 	$: {
 		if (!$status.authenticated) {

@@ -2,3 +2,5 @@ allowBuilds:
   '@parcel/watcher': true
   '@sveltejs/kit': true
   esbuild: true
+overrides:
+  deepmerge: npm:@stackline/deepmerge@1.1.2

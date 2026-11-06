@@ -4,12 +4,12 @@
 	import '../app.css';
 	import halfmoon from 'halfmoon';
 	import { onMount } from 'svelte';
-	import PageTransition from '$lib/PageTransition.svelte';
-	import { page } from '$app/stores';
-	import AddModal from '$lib/Modal.svelte';
-	import { status } from '$lib/request';
+	import PageTransition from '#lib/PageTransition.svelte';
+	import { page } from '$app/state';
+	import AddModal from '#lib/Modal.svelte';
+	import { status } from '#lib/request.ts';
 	import { fly } from 'svelte/transition';
-	import { showModal } from '$lib/Modal.svelte';
+	import { showModal } from '#lib/Modal.svelte';
 
 	onMount(() => {
 		halfmoon.onDOMContentLoaded();
@@ -28,7 +28,7 @@
 <AddModal />
 
 <div class="page-wrapper with-navbar">
-	<div class="sticky-alerts" />
+	<div class="sticky-alerts"></div>
 	<nav class="navbar">
 		{#if $status.loaded}
 			<button class="btn" on:click={() => showModal.set(true)} in:fly>Add device</button>
@@ -36,7 +36,7 @@
 		{/if}
 	</nav>
 	<div class="content-wrapper">
-		<PageTransition url={$page.url.pathname}>
+		<PageTransition url={page.url.pathname}>
 			<slot />
 		</PageTransition>
 	</div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { edit } from '../store';
 	import { createEventDispatcher } from 'svelte';
-	import Spinner from '$lib/icons/spinner.svelte';
+	import Spinner from '#lib/icons/spinner.svelte';
 	const dispatch = createEventDispatcher();
 
 	export let data: Device, index: number;
@@ -87,10 +87,11 @@
 			maxlength="18"
 		/>
 	</label>
-	<label class="w-full">
-		API KEY
+	<div class="w-full">
+		<span>API KEY</span>
 		{#if newdata.api_key}
 			<input
+				aria-label="API KEY"
 				type="text"
 				value={newdata.api_key.substring(0, 5) + '-*****'.repeat(3)}
 				class="form-control"
@@ -108,7 +109,7 @@
 				>
 			{/if}
 		</div>
-	</label>
+	</div>
 	<div class="mt-20 flex text-right">
 		<button
 			class="btn mr-5 flex-1"

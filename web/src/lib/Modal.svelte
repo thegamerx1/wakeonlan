@@ -92,15 +92,15 @@
 				{#if error}
 					<div class="invalid-feedback">Error</div>
 				{/if}
-				<div class="buttons mt-20">
+				<div class="mt-20 flex flex-row xl:justify-end">
 					<button
-						class="btn mr-5"
+						class="btn mr-5 flex-1 xl:flex-initial"
 						type="button"
 						disabled={submiting}
 						on:click={() => showModal.set(false)}>Close</button
 					>
 					<button
-						class="btn btn-primary w-100 flex items-center justify-center"
+						class="btn btn-primary w-100 flex flex-1 items-center justify-center xl:flex-initial"
 						type="submit"
 						disabled={submiting}
 					>
@@ -115,10 +115,3 @@
 		</div>
 	</div>
 </div>
-
-<style lang="sass">
-	.buttons
-		@apply flex flex-row xl:justify-end
-		button
-			@apply flex-1 xl:flex-initial
-</style>

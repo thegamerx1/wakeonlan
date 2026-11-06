@@ -5,12 +5,12 @@
 	import { createEventDispatcher } from 'svelte';
 	import { remove, onlines, type Online } from '../store';
 	import halfmoon from 'halfmoon';
-	import Wifioff from '$lib/icons/wifioff.svelte';
-	import Wifi from '$lib/icons/wifi.svelte';
-	import Spinner from '$lib/icons/spinner.svelte';
-	import Confirm from '$lib/Confirm.svelte';
-	import Edit from '$lib/icons/edit.svelte';
-	import Trash from '$lib/icons/trash.svelte';
+	import Wifioff from '#lib/icons/wifioff.svelte';
+	import Wifi from '#lib/icons/wifi.svelte';
+	import Spinner from '#lib/icons/spinner.svelte';
+	import Confirm from '#lib/Confirm.svelte';
+	import Edit from '#lib/icons/edit.svelte';
+	import Trash from '#lib/icons/trash.svelte';
 	const dispatch = createEventDispatcher();
 
 	export let data: Device, index: number;
@@ -140,7 +140,7 @@
 		<Spinner /> {waitingon}
 	{:else if online?.latency == null}
 		<Confirm on:click={turnon} classes="btn-secondary" text="Wake" />
-		<span class="p-5" />
+		<span class="p-5"></span>
 	{:else if online?.connected}
 		<Confirm
 			on:click={turnoff}
@@ -150,9 +150,8 @@
 	{/if}
 </div>
 
-<style lang="sass">
-	.hover
-		cursor: pointer
-	.buttonCont :global(button)
-		flex: 1
+<style>
+	.buttonCont :global(button) {
+		flex: 1;
+	}
 </style>

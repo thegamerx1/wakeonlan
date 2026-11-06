@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { devices, onlines } from './store';
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 
 export const status = writable({
 	connected: false,
@@ -20,7 +20,7 @@ let requestids = 1;
 reset();
 connect();
 let password = '';
-passwordStore.subscribe((pass) => () => (password = pass));
+passwordStore.subscribe((pass) => (password = pass));
 
 function reset() {
 	if (ws) ws.close();
@@ -88,6 +88,7 @@ function connect() {
 				break;
 
 			case 'wake':
+			case 'shutdown':
 				resolves[data.nonce](data);
 				delete resolves[data.nonce];
 				break;

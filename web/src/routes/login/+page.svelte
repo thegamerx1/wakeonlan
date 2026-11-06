@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { login, status } from '$lib/request';
+	import { login, status } from '#lib/request.ts';
 	import { fade, fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
-	import Spinner from '$lib/icons/spinner.svelte';
-	import { passwordStore } from '$lib/request';
+	import Spinner from '#lib/icons/spinner.svelte';
+	import { passwordStore } from '#lib/request.ts';
 
 	let password = '',
 		loggingin = false,
